@@ -1,3 +1,13 @@
-.env
-firebase-key.json
-__pycache__/
+# --- Backend (Python) ---
+     backend/.env
+     backend/firebase-key.json
+     backend/__pycache__/
+     *.pyc
+
+     # --- Frontend (React/Node) ---
+     frontend/node_modules/
+     frontend/.env
+     frontend/.env.local
+     ```
+
+---
