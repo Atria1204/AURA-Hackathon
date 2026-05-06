@@ -1,0 +1,129 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #f9f9ff;
+  --color-surface: #f9f9ff;
+  --color-on-secondary-container: #fffbff;
+  --color-primary: #3525cd;
+  --color-on-primary-fixed-variant: #3323cc;
+  --color-error: #ba1a1a;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #4f46e5;
+  --color-surface-dim: #cfdaf2;
+  --color-tertiary-fixed: #ffdbcc;
+  --color-on-secondary: #ffffff;
+  --color-on-surface-variant: #464555;
+  --color-surface-variant: #d8e3fb;
+  --color-tertiary-container: #a44100;
+  --color-surface-tint: #4d44e3;
+  --color-surface-container-lowest: #ffffff;
+  --color-inverse-surface: #263143;
+  --color-surface-bright: #f9f9ff;
+  --color-on-tertiary-fixed-variant: #7b2f00;
+  --color-tertiary: #7e3000;
+  --color-secondary: #4648d4;
+  --color-secondary-container: #6063ee;
+  --color-on-tertiary-fixed: #351000;
+  --color-on-tertiary-container: #ffd2be;
+  --color-on-primary-container: #dad7ff;
+  --color-primary-fixed: #e2dfff;
+  --color-surface-container: #e7eeff;
+  --color-on-error: #ffffff;
+  --color-on-primary-fixed: #0f0069;
+  --color-secondary-fixed-dim: #c0c1ff;
+  --color-on-secondary-fixed: #07006c;
+  --color-on-background: #111c2d;
+  --color-primary-fixed-dim: #c3c0ff;
+  --color-outline: #777587;
+  --color-error-container: #ffdad6;
+  --color-on-tertiary: #ffffff;
+  --color-inverse-primary: #c3c0ff;
+  --color-on-secondary-fixed-variant: #2f2ebe;
+  --color-surface-container-high: #dee8ff;
+  --color-tertiary-fixed-dim: #ffb695;
+  --color-on-surface: #111c2d;
+  --color-secondary-fixed: #e1e0ff;
+  --color-on-error-container: #93000a;
+  --color-surface-container-low: #f0f3ff;
+  --color-outline-variant: #c7c4d8;
+  --color-inverse-on-surface: #ecf1ff;
+  --color-surface-container-highest: #d8e3fb;
+
+  --spacing-xl: 3rem;
+  --spacing-lg: 2rem;
+  --spacing-xs: 0.5rem;
+  --spacing-base: 4px;
+  --spacing-margin: 2rem;
+  --spacing-sm: 1rem;
+  --spacing-md: 1.5rem;
+  --spacing-gutter: 1.5rem;
+
+  --font-h2: 'Inter', sans-serif;
+  --font-label-sm: 'Inter', sans-serif;
+  --font-h1: 'Inter', sans-serif;
+  --font-body-lg: 'Inter', sans-serif;
+  --font-h3: 'Inter', sans-serif;
+  --font-body-md: 'Inter', sans-serif;
+  --font-body-sm: 'Inter', sans-serif;
+  --font-label-md: 'Inter', sans-serif;
+
+  /* We'll use custom utility classes for the font-size + line-height tuples */
+}
+
+@layer base {
+  body {
+    @apply bg-background text-on-surface antialiased;
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+@layer utilities {
+  .antigravity-shadow {
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+  }
+
+  /* Text styles from user config */
+  .text-h1 {
+    font-size: 30px;
+    line-height: 36px;
+    letter-spacing: -0.02em;
+    font-weight: 700;
+  }
+  .text-h2 {
+    font-size: 24px;
+    line-height: 32px;
+    letter-spacing: -0.01em;
+    font-weight: 600;
+  }
+  .text-h3 {
+    font-size: 20px;
+    line-height: 28px;
+    font-weight: 600;
+  }
+  .text-body-lg {
+    font-size: 18px;
+    line-height: 28px;
+    font-weight: 400;
+  }
+  .text-body-md {
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 400;
+  }
+  .text-body-sm {
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 400;
+  }
+  .text-label-md {
+    font-size: 14px;
+    line-height: 16px;
+    letter-spacing: 0.02em;
+    font-weight: 600;
+  }
+  .text-label-sm {
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 500;
+  }
+}
