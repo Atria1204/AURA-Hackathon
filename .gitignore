@@ -4,10 +4,7 @@
      backend/__pycache__/
      *.pyc
 
-     # --- Frontend (React/Node) ---
+# --- Frontend (React/Node) ---
      frontend/node_modules/
      frontend/.env
      frontend/.env.local
-     ```
-
----
