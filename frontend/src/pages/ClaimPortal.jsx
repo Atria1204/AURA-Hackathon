@@ -3,20 +3,31 @@ import { useNavigate } from 'react-router-dom';
 
 const ClaimPortal = () => {
   // Gatekeeper state
+  const [customerName, setCustomerName] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
   const [resi, setResi] = useState('');
   const [phone, setPhone] = useState('');
   const [isVerified, setIsVerified] = useState(false);
 
   // Claim Form state
   const [complaint, setComplaint] = useState('');
-  const [imageBase64, setImageBase64] = useState(null);
-  const [fileName, setFileName] = useState('');
-  const [isDragging, setIsDragging] = useState(false);
+  const [photoBase64, setPhotoBase64] = useState(null);
+  const [photoFileName, setPhotoFileName] = useState('');
+  const [isPhotoDragging, setIsPhotoDragging] = useState(false);
+  const [isPhotoLoading, setIsPhotoLoading] = useState(false);
+  
+  const [videoBase64, setVideoBase64] = useState(null);
+  const [videoFileName, setVideoFileName] = useState('');
+  const [isVideoDragging, setIsVideoDragging] = useState(false);
+  const [isVideoLoading, setIsVideoLoading] = useState(false);
+
   const [isLoading, setIsLoading] = useState(false);
   const [alertInfo, setAlertInfo] = useState(null);
-  const fileInputRef = useRef(null);
+  
+  const photoInputRef = useRef(null);
+  const videoInputRef = useRef(null);
 
-  const isFormValid = resi.trim() !== '' && phone.trim().length === 4;
+  const isFormValid = customerName.trim() !== '' && customerEmail.trim() !== '' && resi.trim() !== '' && phone.trim().length === 4;
 
   const handleVerify = () => {
     if (isFormValid) {
@@ -24,61 +35,55 @@ const ClaimPortal = () => {
     }
   };
 
-  const processFile = (file) => {
+  const processPhoto = (file) => {
     if (!file) return;
-    
-    // Ensure it's an image or video
-    if (!file.type.match('image/jpeg') && !file.type.match('image/png') && !file.type.match('video/mp4')) {
-      setAlertInfo({ type: 'error', message: 'Hanya file JPG, PNG, atau MP4 yang diperbolehkan.' });
+    if (!file.type.match('image/jpeg') && !file.type.match('image/png')) {
+      setAlertInfo({ type: 'error', message: 'Hanya file JPG atau PNG yang diperbolehkan untuk foto.' });
       return;
     }
-
-    setFileName(file.name);
-    
+    setPhotoFileName(file.name);
+    setIsPhotoLoading(true);
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setImageBase64(reader.result);
-      setAlertInfo(null);
-    };
-    reader.onerror = () => {
-      setAlertInfo({ type: 'error', message: 'Gagal membaca file.' });
-    };
+    reader.onloadend = () => { setPhotoBase64(reader.result); setAlertInfo(null); setIsPhotoLoading(false); };
+    reader.onerror = () => { setAlertInfo({ type: 'error', message: 'Gagal membaca file foto.' }); setIsPhotoLoading(false); };
     reader.readAsDataURL(file);
   };
 
-  const handleDragOver = useCallback((e) => {
-    e.preventDefault();
-    setIsDragging(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e) => {
-    e.preventDefault();
-    setIsDragging(false);
-  }, []);
-
-  const handleDrop = useCallback((e) => {
-    e.preventDefault();
-    setIsDragging(false);
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      processFile(e.dataTransfer.files[0]);
+  const processVideo = (file) => {
+    if (!file) return;
+    if (!file.type.match('video/mp4')) {
+      setAlertInfo({ type: 'error', message: 'Hanya file MP4 yang diperbolehkan untuk video.' });
+      return;
     }
-  }, []);
-
-  const handleFileChange = (e) => {
-    if (e.target.files && e.target.files.length > 0) {
-      processFile(e.target.files[0]);
-    }
+    setVideoFileName(file.name);
+    setIsVideoLoading(true);
+    const reader = new FileReader();
+    reader.onloadend = () => { setVideoBase64(reader.result); setAlertInfo(null); setIsVideoLoading(false); };
+    reader.onerror = () => { setAlertInfo({ type: 'error', message: 'Gagal membaca file video.' }); setIsVideoLoading(false); };
+    reader.readAsDataURL(file);
   };
 
-  const removeImage = () => {
-    setImageBase64(null);
-    setFileName('');
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
+  const handlePhotoDragOver = useCallback((e) => { e.preventDefault(); setIsPhotoDragging(true); }, []);
+  const handlePhotoDragLeave = useCallback((e) => { e.preventDefault(); setIsPhotoDragging(false); }, []);
+  const handlePhotoDrop = useCallback((e) => {
+    e.preventDefault(); setIsPhotoDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) processPhoto(e.dataTransfer.files[0]);
+  }, []);
+  const handlePhotoChange = (e) => { if (e.target.files && e.target.files.length > 0) processPhoto(e.target.files[0]); };
+  const removePhoto = () => { setPhotoBase64(null); setPhotoFileName(''); if (photoInputRef.current) photoInputRef.current.value = ''; };
+
+  const handleVideoDragOver = useCallback((e) => { e.preventDefault(); setIsVideoDragging(true); }, []);
+  const handleVideoDragLeave = useCallback((e) => { e.preventDefault(); setIsVideoDragging(false); }, []);
+  const handleVideoDrop = useCallback((e) => {
+    e.preventDefault(); setIsVideoDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) processVideo(e.dataTransfer.files[0]);
+  }, []);
+  const handleVideoChange = (e) => { if (e.target.files && e.target.files.length > 0) processVideo(e.target.files[0]); };
+  const removeVideo = () => { setVideoBase64(null); setVideoFileName(''); if (videoInputRef.current) videoInputRef.current.value = ''; };
 
   const handleSubmitClaim = async () => {
-    if (!complaint || !imageBase64) {
-      setAlertInfo({ type: 'error', message: 'Harap lengkapi detail keluhan dan unggah foto/video bukti.' });
+    if (!complaint || !photoBase64) {
+      setAlertInfo({ type: 'error', message: 'Harap lengkapi detail keluhan dan unggah setidaknya foto bukti.' });
       return;
     }
 
@@ -88,7 +93,8 @@ const ClaimPortal = () => {
     const payload = {
       nomor_resi: resi,
       teks_keluhan: complaint,
-      foto_base64: imageBase64,
+      foto_base64: photoBase64,
+      video_base64: videoBase64,
     };
 
     try {
@@ -103,30 +109,34 @@ const ClaimPortal = () => {
       if (response && response.status === 429) {
         setAlertInfo({ type: 'error', message: 'Rate Limit Tercapai (429). Sistem sedang sibuk.' });
       } else if (response && response.ok) {
-        setAlertInfo({ type: 'success', message: 'Klaim berhasil dikirim dan dianalisis.' });
+        setAlertInfo({ type: 'success', message: 'Klaim berhasil dikirim!' });
+
         setComplaint('');
-        removeImage();
+        removePhoto();
+        removeVideo();
         // Reset verify state to show success clearly
         setIsVerified(false);
         setResi('');
         setPhone('');
+        setCustomerName('');
+        setCustomerEmail('');
       } else {
         setAlertInfo({ type: 'error', message: `Terjadi kesalahan. (Status: ${response?.status})` });
       }
     } catch (error) {
       // Mock logic
       await new Promise(r => setTimeout(r, 1500));
-      const isRateLimited = Math.random() < 0.3;
-      if (isRateLimited) {
-        setAlertInfo({ type: 'error', message: '[Mock] Rate Limit Tercapai (429). Mohon coba lagi.' });
-      } else {
-        setAlertInfo({ type: 'success', message: '[Mock] Klaim berhasil dikirim ke A.U.R.A.' });
-        setComplaint('');
-        removeImage();
-        setIsVerified(false);
-        setResi('');
-        setPhone('');
-      }
+
+      setAlertInfo({ type: 'success', message: '[Mock] Klaim berhasil dikirim!' });
+
+      setComplaint('');
+      removePhoto();
+      removeVideo();
+      setIsVerified(false);
+      setResi('');
+      setPhone('');
+      setCustomerName('');
+      setCustomerEmail('');
     } finally {
       setIsLoading(false);
     }
@@ -143,10 +153,11 @@ const ClaimPortal = () => {
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-surface-variant rounded-full blur-3xl opacity-50 z-0"></div>
         <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-surface-container rounded-full blur-3xl opacity-50 z-0"></div>
 
-        <div className="w-full max-w-[1000px] flex gap-8 z-10 flex-col lg:flex-row items-start">
+        <div className="w-full max-w-[1000px] mx-auto flex justify-center z-10 px-4">
           
           {/* Step 1: The Gatekeeper */}
-          <div className={`w-full lg:w-1/2 bg-surface-container-lowest rounded-[24px] p-8 antigravity-shadow border border-surface-container relative transition-all duration-300 ${isVerified ? 'opacity-50 pointer-events-none' : ''}`}>
+          {!isVerified && (
+            <div className="w-full max-w-[600px] bg-surface-container-lowest rounded-[24px] p-8 antigravity-shadow border border-surface-container relative transition-all duration-300">
             {/* Progress Indicator */}
             <div className="flex gap-2 mb-8">
               <div className="h-1 flex-1 bg-primary-container rounded-full"></div>
@@ -159,29 +170,57 @@ const ClaimPortal = () => {
             </div>
 
             <form className="space-y-6">
-              <div>
-                <label className="block text-label-md text-on-surface mb-2" htmlFor="receipt-number">Nomor Resi / Pesanan</label>
-                <input 
-                  id="receipt-number" 
-                  type="text" 
-                  placeholder="Contoh: INV-2023-XYZ"
-                  value={resi}
-                  onChange={(e) => setResi(e.target.value)}
-                  className="w-full h-12 px-4 rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface text-body-md focus:border-primary-container focus:ring-1 focus:ring-primary-container outline-none transition-colors" 
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-label-md text-on-surface mb-2" htmlFor="customer-name">Nama Lengkap</label>
+                  <input 
+                    id="customer-name" 
+                    type="text" 
+                    placeholder="Contoh: Budi Santoso"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    className="w-full h-12 px-4 rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface text-body-md focus:border-primary-container focus:ring-1 focus:ring-primary-container outline-none transition-colors" 
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-label-md text-on-surface mb-2" htmlFor="customer-email">Alamat Email</label>
+                  <input 
+                    id="customer-email" 
+                    type="email" 
+                    placeholder="Contoh: budi@email.com"
+                    value={customerEmail}
+                    onChange={(e) => setCustomerEmail(e.target.value)}
+                    className="w-full h-12 px-4 rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface text-body-md focus:border-primary-container focus:ring-1 focus:ring-primary-container outline-none transition-colors" 
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-label-md text-on-surface mb-2" htmlFor="phone-digits">4 Digit Terakhir Nomor HP</label>
-                <input 
-                  id="phone-digits" 
-                  type="text" 
-                  maxLength="4" 
-                  placeholder="Contoh: 4567"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                  className="w-full h-12 px-4 rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface text-body-md focus:border-primary-container focus:ring-1 focus:ring-primary-container outline-none transition-colors" 
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-label-md text-on-surface mb-2" htmlFor="receipt-number">Nomor Resi / Pesanan</label>
+                  <input 
+                    id="receipt-number" 
+                    type="text" 
+                    placeholder="Contoh: INV-2023-XYZ"
+                    value={resi}
+                    onChange={(e) => setResi(e.target.value.toUpperCase())}
+                    className="w-full h-12 px-4 rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface text-body-md focus:border-primary-container focus:ring-1 focus:ring-primary-container outline-none transition-colors" 
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-label-md text-on-surface mb-2" htmlFor="phone-digits">4 Digit Terakhir Nomor HP</label>
+                  <input 
+                    id="phone-digits" 
+                    type="text" 
+                    maxLength="4" 
+                    placeholder="Contoh: 4567"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                    className="w-full h-12 px-4 rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface text-body-md focus:border-primary-container focus:ring-1 focus:ring-primary-container outline-none transition-colors" 
+                  />
+                </div>
               </div>
 
               <button 
@@ -206,17 +245,26 @@ const ClaimPortal = () => {
                 <span className="text-body-sm font-medium">{alertInfo.message}</span>
               </div>
             )}
-          </div>
+            </div>
+          )}
 
           {/* Step 2: Evidence Submission */}
-          <div className={`w-full lg:w-1/2 bg-surface-container-lowest rounded-[24px] p-8 antigravity-shadow border border-surface-container transition-opacity duration-300 ${!isVerified ? 'opacity-50 pointer-events-none' : ''}`}>
+          {isVerified && (
+            <div className="w-full max-w-[600px] bg-surface-container-lowest rounded-[24px] p-8 antigravity-shadow border border-surface-container transition-all duration-300">
             <div className="flex gap-2 mb-8">
               <div className="h-1 flex-1 bg-primary-fixed rounded-full"></div>
               <div className="h-1 flex-1 bg-primary-container rounded-full"></div>
             </div>
 
-            <div className="mb-6">
-              <h2 className="text-h2 text-on-surface mb-2">Detail Klaim</h2>
+            <div className="mb-6 flex items-center gap-3">
+              <button 
+                type="button" 
+                onClick={() => setIsVerified(false)} 
+                className="material-symbols-outlined text-on-surface-variant hover:bg-surface-container p-2 rounded-full transition-colors cursor-pointer -ml-2"
+              >
+                arrow_back
+              </button>
+              <h2 className="text-h2 text-on-surface">Detail Klaim</h2>
             </div>
 
             {/* Order Summary Card */}
@@ -255,50 +303,108 @@ const ClaimPortal = () => {
                 ></textarea>
               </div>
 
-              <div>
-                <label className="block text-label-md text-on-surface mb-2">Unggah Bukti</label>
-                {!imageBase64 ? (
-                  <div 
-                    className={`w-full border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center text-center transition-colors cursor-pointer relative ${
-                      isDragging ? 'border-primary-container bg-surface-container-low' : 'border-outline-variant bg-surface-container-lowest hover:border-primary-container hover:bg-surface-container-low'
-                    }`}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                  >
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileChange}
-                      accept="image/jpeg, image/png, video/mp4"
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    />
-                    <div className="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center mb-3 pointer-events-none">
-                      <span className="material-symbols-outlined text-primary-container text-[24px]">cloud_upload</span>
+              <div className="flex flex-col gap-6">
+                <div>
+                  <label className="block text-label-md text-on-surface mb-2">Unggah Bukti Foto (Wajib)</label>
+                  {isPhotoLoading ? (
+                    <div className="w-full border-2 border-dashed border-primary-container rounded-xl p-8 flex flex-col items-center justify-center text-center bg-surface-container-low h-[180px]">
+                      <span className="material-symbols-outlined animate-spin text-primary-container text-[32px] mb-2">sync</span>
+                      <div className="text-label-md text-on-surface">Memproses foto...</div>
                     </div>
-                    <div className="text-label-md text-on-surface mb-1 pointer-events-none">Tarik & Lepas file di sini</div>
-                    <div className="text-body-sm text-on-surface-variant pointer-events-none">atau klik untuk menelusuri (JPG, PNG, MP4 max 50MB)</div>
-                  </div>
-                ) : (
-                  <div className="relative border border-outline-variant rounded-xl p-4 flex items-center justify-between bg-surface-container-lowest shadow-sm">
-                    <div className="flex items-center space-x-4 overflow-hidden">
-                      <div className="w-16 h-16 rounded-lg bg-surface-variant overflow-hidden shrink-0 border border-outline-variant/30 flex items-center justify-center">
-                        <img src={imageBase64} alt="Preview" className="w-full h-full object-cover" />
-                      </div>
-                      <div className="truncate">
-                        <p className="text-body-md font-medium text-on-surface truncate">{fileName}</p>
-                        <p className="text-body-sm text-on-surface-variant">File siap dikirim</p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={removeImage}
-                      className="p-2 text-outline hover:text-error hover:bg-error-container rounded-full transition-colors"
+                  ) : !photoBase64 ? (
+                    <div 
+                      className={`w-full border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center text-center transition-colors cursor-pointer relative ${
+                        isPhotoDragging ? 'border-primary-container bg-surface-container-low' : 'border-outline-variant bg-surface-container-lowest hover:border-primary-container hover:bg-surface-container-low'
+                      }`}
+                      onDragOver={handlePhotoDragOver}
+                      onDragLeave={handlePhotoDragLeave}
+                      onDrop={handlePhotoDrop}
                     >
-                      <span className="material-symbols-outlined text-[20px]">close</span>
-                    </button>
-                  </div>
-                )}
+                      <input
+                        type="file"
+                        ref={photoInputRef}
+                        onChange={handlePhotoChange}
+                        accept="image/jpeg, image/png"
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      />
+                      <div className="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center mb-3 pointer-events-none">
+                        <span className="material-symbols-outlined text-primary-container text-[24px]">add_a_photo</span>
+                      </div>
+                      <div className="text-label-md text-on-surface mb-1 pointer-events-none">Tarik & Lepas foto di sini</div>
+                      <div className="text-body-sm text-on-surface-variant pointer-events-none">atau klik untuk menelusuri (JPG, PNG)</div>
+                    </div>
+                  ) : (
+                    <div className="relative border border-outline-variant rounded-xl p-4 flex items-center justify-between bg-surface-container-lowest shadow-sm">
+                      <div className="flex items-center space-x-4 overflow-hidden">
+                        <div className="w-16 h-16 rounded-lg bg-surface-variant overflow-hidden shrink-0 border border-outline-variant/30 flex items-center justify-center">
+                          <img src={photoBase64} alt="Preview" className="w-full h-full object-cover" />
+                        </div>
+                        <div className="truncate">
+                          <p className="text-body-md font-medium text-on-surface truncate">{photoFileName}</p>
+                          <p className="text-body-sm text-on-surface-variant">Foto siap dikirim</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={removePhoto}
+                        className="p-2 text-outline hover:text-error hover:bg-error-container rounded-full transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-[20px]">close</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-label-md text-on-surface mb-2">Unggah Bukti Video Unboxing (Opsional)</label>
+                  {isVideoLoading ? (
+                    <div className="w-full border-2 border-dashed border-primary-container rounded-xl p-8 flex flex-col items-center justify-center text-center bg-surface-container-low h-[180px]">
+                      <span className="material-symbols-outlined animate-spin text-primary-container text-[32px] mb-2">sync</span>
+                      <div className="text-label-md text-on-surface">Memproses video...</div>
+                    </div>
+                  ) : !videoBase64 ? (
+                    <div 
+                      className={`w-full border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center text-center transition-colors cursor-pointer relative ${
+                        isVideoDragging ? 'border-primary-container bg-surface-container-low' : 'border-outline-variant bg-surface-container-lowest hover:border-primary-container hover:bg-surface-container-low'
+                      }`}
+                      onDragOver={handleVideoDragOver}
+                      onDragLeave={handleVideoDragLeave}
+                      onDrop={handleVideoDrop}
+                    >
+                      <input
+                        type="file"
+                        ref={videoInputRef}
+                        onChange={handleVideoChange}
+                        accept="video/mp4"
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      />
+                      <div className="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center mb-3 pointer-events-none">
+                        <span className="material-symbols-outlined text-primary-container text-[24px]">videocam</span>
+                      </div>
+                      <div className="text-label-md text-on-surface mb-1 pointer-events-none">Tarik & Lepas video di sini</div>
+                      <div className="text-body-sm text-on-surface-variant pointer-events-none">atau klik untuk menelusuri (MP4 max 50MB)</div>
+                    </div>
+                  ) : (
+                    <div className="relative border border-outline-variant rounded-xl p-4 flex items-center justify-between bg-surface-container-lowest shadow-sm">
+                      <div className="flex items-center space-x-4 overflow-hidden">
+                        <div className="w-16 h-16 rounded-lg bg-surface-variant overflow-hidden shrink-0 border border-outline-variant/30 flex items-center justify-center">
+                          <span className="material-symbols-outlined text-[32px] text-primary">play_circle</span>
+                        </div>
+                        <div className="truncate">
+                          <p className="text-body-md font-medium text-on-surface truncate">{videoFileName}</p>
+                          <p className="text-body-sm text-on-surface-variant">Video siap dikirim</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={removeVideo}
+                        className="p-2 text-outline hover:text-error hover:bg-error-container rounded-full transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-[20px]">close</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Information Alert */}
@@ -327,7 +433,8 @@ const ClaimPortal = () => {
                 )}
               </button>
             </form>
-          </div>
+            </div>
+          )}
 
         </div>
       </main>

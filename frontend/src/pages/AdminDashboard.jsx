@@ -10,6 +10,8 @@ const dummyClaims = [
 
 const AdminDashboard = () => {
   const [selectedClaim, setSelectedClaim] = useState(null);
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [timeFilter, setTimeFilter] = useState('today');
 
   const getScoreColorClass = (score) => {
     if (score >= 80) return { bg: 'bg-emerald-500', text: 'text-emerald-800', lightBg: 'bg-emerald-100' };
@@ -40,16 +42,28 @@ const AdminDashboard = () => {
           </div>
         </div>
         
-        <button className="bg-primary-container text-on-primary w-full py-3 rounded-lg text-label-md hover:bg-surface-tint transition-colors shadow-sm">
-          New Return Claim
-        </button>
-        
         <div className="flex flex-col gap-2 flex-grow">
-          <a className="flex items-center gap-3 px-4 py-3 text-primary bg-primary-fixed/30 rounded-xl hover:bg-primary-fixed/50 transition-all duration-200" href="#">
+          <a 
+            onClick={(e) => { e.preventDefault(); setActiveTab('dashboard'); }}
+            className={`flex items-center gap-3 px-4 py-3 transition-all duration-200 rounded-xl ${
+              activeTab === 'dashboard' 
+                ? 'text-primary bg-primary-fixed/30 hover:bg-primary-fixed/50' 
+                : 'text-outline hover:bg-surface-container hover:text-primary'
+            }`} 
+            href="#"
+          >
             <span className="material-symbols-outlined">dashboard</span>
             Dashboard
           </a>
-          <a className="flex items-center gap-3 px-4 py-3 text-outline hover:bg-surface-container hover:text-primary transition-all duration-200 rounded-xl" href="#">
+          <a 
+            onClick={(e) => { e.preventDefault(); setActiveTab('claims'); }}
+            className={`flex items-center gap-3 px-4 py-3 transition-all duration-200 rounded-xl ${
+              activeTab === 'claims' 
+                ? 'text-primary bg-primary-fixed/30 hover:bg-primary-fixed/50' 
+                : 'text-outline hover:bg-surface-container hover:text-primary'
+            }`} 
+            href="#"
+          >
             <span className="material-symbols-outlined">assignment</span>
             Claim List
           </a>
@@ -77,83 +91,98 @@ const AdminDashboard = () => {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-4">
           <div>
-            <h1 className="text-h1 text-on-surface">Dashboard Overview</h1>
-            <p className="text-body-md text-on-surface-variant mt-1">Real-time intelligence and claim processing metrics.</p>
+            <h1 className="text-h1 text-on-surface">{activeTab === 'dashboard' ? 'Dashboard Overview' : 'Claim Management'}</h1>
+            <p className="text-body-md text-on-surface-variant mt-1">
+              {activeTab === 'dashboard' ? 'Real-time intelligence and claim processing metrics.' : 'Manage and process customer return claims.'}
+            </p>
           </div>
-          <div className="flex items-center gap-3 bg-surface-container-low p-1.5 rounded-lg border border-outline-variant">
-            <button className="px-4 py-1.5 text-sm font-medium bg-white rounded-md shadow-sm text-on-surface">Today</button>
-            <button className="px-4 py-1.5 text-sm font-medium text-on-surface-variant hover:text-on-surface">7 Days</button>
-            <button className="px-4 py-1.5 text-sm font-medium text-on-surface-variant hover:text-on-surface">30 Days</button>
-          </div>
+          {activeTab === 'dashboard' && (
+            <div className="flex items-center gap-1 bg-surface-container-low p-1.5 rounded-lg border border-outline-variant">
+              <button 
+                onClick={() => setTimeFilter('today')}
+                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${timeFilter === 'today' ? 'bg-white shadow-sm text-on-surface' : 'text-on-surface-variant hover:text-on-surface'}`}
+              >Today</button>
+              <button 
+                onClick={() => setTimeFilter('7days')}
+                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${timeFilter === '7days' ? 'bg-white shadow-sm text-on-surface' : 'text-on-surface-variant hover:text-on-surface'}`}
+              >7 Days</button>
+              <button 
+                onClick={() => setTimeFilter('30days')}
+                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${timeFilter === '30days' ? 'bg-white shadow-sm text-on-surface' : 'text-on-surface-variant hover:text-on-surface'}`}
+              >30 Days</button>
+            </div>
+          )}
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          
-          <div className="bg-surface-container-lowest p-6 rounded-[24px] antigravity-shadow border border-slate-100 flex flex-col justify-between h-[160px] relative overflow-hidden group">
-            <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary-fixed rounded-full opacity-20 group-hover:scale-150 transition-transform duration-500 ease-out"></div>
-            <div>
-              <div className="flex items-center gap-2 mb-2 text-on-surface-variant text-label-md">
-                <span className="material-symbols-outlined text-[18px]">receipt_long</span>
-                Total Claims Today
+        {activeTab === 'dashboard' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            
+            <div className="bg-surface-container-lowest p-6 rounded-[24px] antigravity-shadow border border-slate-100 flex flex-col justify-between h-[160px] relative overflow-hidden group">
+              <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary-fixed rounded-full opacity-20 group-hover:scale-150 transition-transform duration-500 ease-out"></div>
+              <div>
+                <div className="flex items-center gap-2 mb-2 text-on-surface-variant text-label-md">
+                  <span className="material-symbols-outlined text-[18px]">receipt_long</span>
+                  Total Claims Today
+                </div>
+                <div className="text-h1 text-on-surface">142</div>
               </div>
-              <div className="text-h1 text-on-surface">142</div>
+              <div className="flex items-center text-emerald-600 text-label-sm gap-1 bg-emerald-50 w-fit px-2 py-1 rounded-md">
+                <span className="material-symbols-outlined text-[14px]">trending_up</span>
+                +12% vs yesterday
+              </div>
             </div>
-            <div className="flex items-center text-emerald-600 text-label-sm gap-1 bg-emerald-50 w-fit px-2 py-1 rounded-md">
-              <span className="material-symbols-outlined text-[14px]">trending_up</span>
-              +12% vs yesterday
-            </div>
-          </div>
 
-          <div className="bg-surface-container-lowest p-6 rounded-[24px] antigravity-shadow border border-slate-100 flex flex-col justify-between h-[160px] relative overflow-hidden group">
-            <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary-fixed rounded-full opacity-20 group-hover:scale-150 transition-transform duration-500 ease-out"></div>
-            <div>
-              <div className="flex items-center gap-2 mb-2 text-on-surface-variant text-label-md">
-                <span className="material-symbols-outlined text-[18px]">pending_actions</span>
-                Claims Pending Decision
+            <div className="bg-surface-container-lowest p-6 rounded-[24px] antigravity-shadow border border-slate-100 flex flex-col justify-between h-[160px] relative overflow-hidden group">
+              <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary-fixed rounded-full opacity-20 group-hover:scale-150 transition-transform duration-500 ease-out"></div>
+              <div>
+                <div className="flex items-center gap-2 mb-2 text-on-surface-variant text-label-md">
+                  <span className="material-symbols-outlined text-[18px]">pending_actions</span>
+                  Claims Pending Decision
+                </div>
+                <div className="text-h1 text-on-surface">28</div>
               </div>
-              <div className="text-h1 text-on-surface">28</div>
+              <div className="w-full bg-slate-100 h-1.5 rounded-full mt-auto mb-1">
+                <div className="bg-tertiary-container h-1.5 rounded-full w-[20%]"></div>
+              </div>
             </div>
-            <div className="w-full bg-slate-100 h-1.5 rounded-full mt-auto mb-1">
-              <div className="bg-tertiary-container h-1.5 rounded-full w-[20%]"></div>
-            </div>
-          </div>
 
-          <div className="bg-surface-container-lowest p-6 rounded-[24px] antigravity-shadow border border-slate-100 flex flex-col justify-between h-[160px] relative overflow-hidden group">
-            <div className="absolute -right-4 -top-4 w-24 h-24 bg-surface-variant rounded-full opacity-50 group-hover:scale-150 transition-transform duration-500 ease-out"></div>
-            <div>
-              <div className="flex items-center gap-2 mb-2 text-on-surface-variant text-label-md">
-                <span className="material-symbols-outlined text-[18px]">timer</span>
-                Avg. Resolution Time
+            <div className="bg-surface-container-lowest p-6 rounded-[24px] antigravity-shadow border border-slate-100 flex flex-col justify-between h-[160px] relative overflow-hidden group">
+              <div className="absolute -right-4 -top-4 w-24 h-24 bg-surface-variant rounded-full opacity-50 group-hover:scale-150 transition-transform duration-500 ease-out"></div>
+              <div>
+                <div className="flex items-center gap-2 mb-2 text-on-surface-variant text-label-md">
+                  <span className="material-symbols-outlined text-[18px]">timer</span>
+                  Avg. Resolution Time
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <div className="text-h1 text-on-surface">8</div>
+                  <div className="text-body-sm text-on-surface-variant">Mins</div>
+                </div>
               </div>
-              <div className="flex items-baseline gap-2">
-                <div className="text-h1 text-on-surface">8</div>
-                <div className="text-body-sm text-on-surface-variant">Mins</div>
+              <div className="flex items-center text-emerald-600 text-label-sm gap-1 bg-emerald-50 w-fit px-2 py-1 rounded-md">
+                <span className="material-symbols-outlined text-[14px]">trending_down</span>
+                -2 mins vs avg
               </div>
             </div>
-            <div className="flex items-center text-emerald-600 text-label-sm gap-1 bg-emerald-50 w-fit px-2 py-1 rounded-md">
-              <span className="material-symbols-outlined text-[14px]">trending_down</span>
-              -2 mins vs avg
-            </div>
-          </div>
 
-          <div className="bg-surface-container-lowest p-6 rounded-[24px] antigravity-shadow border border-slate-100 flex flex-col justify-between h-[160px] relative overflow-hidden group bg-gradient-to-br from-white to-primary-fixed/20">
-            <div>
-              <div className="flex items-center gap-2 mb-2 text-primary text-label-md">
-                <span className="material-symbols-outlined text-[18px]">verified_user</span>
-                Avg. Trust Score
+            <div className="bg-surface-container-lowest p-6 rounded-[24px] antigravity-shadow border border-slate-100 flex flex-col justify-between h-[160px] relative overflow-hidden group bg-gradient-to-br from-white to-primary-fixed/20">
+              <div>
+                <div className="flex items-center gap-2 mb-2 text-primary text-label-md">
+                  <span className="material-symbols-outlined text-[18px]">verified_user</span>
+                  Avg. Trust Score
+                </div>
+                <div className="flex items-baseline gap-1">
+                  <div className="text-h1 text-primary">94</div>
+                  <div className="text-body-sm text-primary">/100</div>
+                </div>
               </div>
-              <div className="flex items-baseline gap-1">
-                <div className="text-h1 text-primary">94</div>
-                <div className="text-body-sm text-primary">/100</div>
+              <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                <div className="bg-gradient-to-r from-emerald-400 to-primary h-full w-[94%] rounded-full"></div>
               </div>
             </div>
-            <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-              <div className="bg-gradient-to-r from-emerald-400 to-primary h-full w-[94%] rounded-full"></div>
-            </div>
-          </div>
 
-        </div>
+          </div>
+        )}
 
         {/* Table Area */}
         <div className="bg-surface-container-lowest rounded-[24px] antigravity-shadow border border-slate-100 overflow-hidden">
