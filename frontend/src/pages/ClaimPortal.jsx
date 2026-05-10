@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import SuccessScreen from '../components/SuccessScreen';
 
 const ClaimPortal = () => {
   // Gatekeeper state
@@ -8,6 +9,7 @@ const ClaimPortal = () => {
   const [resi, setResi] = useState('');
   const [phone, setPhone] = useState('');
   const [isVerified, setIsVerified] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   // Claim Form state
   const [complaint, setComplaint] = useState('');
@@ -109,12 +111,10 @@ const ClaimPortal = () => {
       if (response && response.status === 429) {
         setAlertInfo({ type: 'error', message: 'Rate Limit Tercapai (429). Sistem sedang sibuk.' });
       } else if (response && response.ok) {
-        setAlertInfo({ type: 'success', message: 'Klaim berhasil dikirim!' });
-
+        setIsSuccess(true);
         setComplaint('');
         removePhoto();
         removeVideo();
-        // Reset verify state to show success clearly
         setIsVerified(false);
         setResi('');
         setPhone('');
@@ -127,8 +127,7 @@ const ClaimPortal = () => {
       // Mock logic
       await new Promise(r => setTimeout(r, 1500));
 
-      setAlertInfo({ type: 'success', message: '[Mock] Klaim berhasil dikirim!' });
-
+      setIsSuccess(true);
       setComplaint('');
       removePhoto();
       removeVideo();
@@ -144,6 +143,7 @@ const ClaimPortal = () => {
 
   return (
     <div className="bg-background text-on-surface min-h-screen flex flex-col antialiased">
+      {isSuccess && <SuccessScreen onReturnHome={() => setIsSuccess(false)} />}
       <header className="w-full py-6 px-8 flex justify-center items-center absolute top-0 z-10">
         <div className="text-xl font-bold tracking-tight text-on-surface">A.U.R.A</div>
       </header>
