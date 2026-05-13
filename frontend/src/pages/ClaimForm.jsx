@@ -75,7 +75,7 @@ const ClaimForm = () => {
     setAlertInfo(null);
 
     const payload = {
-      nomor_resi: 'JX1234567890', // Dummy order
+      nomor_resi: 'TKP-2026-001', // Dummy order
       teks_keluhan: complaint,
       foto_base64: imageBase64,
     };
@@ -84,7 +84,7 @@ const ClaimForm = () => {
       // Mocking fetch logic as requested
       // In a real environment this hits the backend, but we'll simulate a fetch delay
       // and random 429 error if it can't connect, or just hit the real URL.
-      const response = await fetch('http://127.0.0.1:5000/api/analyze_claim', {
+      const response = await fetch('http://127.0.0.1:8080/api/analyze_claim', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -189,7 +189,7 @@ const ClaimForm = () => {
             <div>
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Detail Pesanan</p>
               <p className="text-lg font-medium text-slate-800">Sepatu Sneakers Putih - Size 42</p>
-              <p className="text-sm text-slate-500">No. Resi: <span className="font-mono bg-slate-100 px-2 py-0.5 rounded text-slate-700">JX1234567890</span></p>
+              <p className="text-sm text-slate-500">No. Resi: <span className="font-mono bg-slate-100 px-2 py-0.5 rounded text-slate-700">TKP-2026-001</span></p>
             </div>
             <div className="text-right">
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">

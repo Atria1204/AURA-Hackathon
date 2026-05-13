@@ -1,144 +1,173 @@
 import os
+import random
+import string
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import google.generativeai as genai
 from datetime import datetime
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
 
-# --- 1. SETUP GEMINI 2.0 FLASH ---
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
-    # Sesuai proposal, kita pakai model 2.0 Flash untuk reasoning multimodal
-    model = genai.GenerativeModel('gemini-2.0-flash') 
-else:
-    model = None
-
-# --- 2. DATASET SIMULASI (Mock Firestore) ---
-# Sesuai proposal Bab 6: Berisi Dummy Order untuk kalkulasi S1 (Time Gap) & S2 (Repeat Claim)
-MOCK_FIRESTORE = {
+# --- MOCK DATABASE: Simulasi tabel orders ---
+MOCK_ORDERS = {
     "TKP-2026-001": {
-        "tanggal_beli": "2026-05-01", 
+        "tanggal_beli": "2026-05-01",
         "produk": "Jaket Denim Series B",
-        "riwayat_klaim_90hari": 0
+        "riwayat_klaim_aktif": 0
     },
     "TKP-FRAUD-99": {
-        "tanggal_beli": "2026-03-15", 
+        "tanggal_beli": "2026-03-15",
         "produk": "Kaos Polos Hitam",
-        "riwayat_klaim_90hari": 2 # Akan memicu Sinyal S2
-    }
+        "riwayat_klaim_aktif": 2
+    },
+    "TKP-2026-002": {
+        "tanggal_beli": "2026-05-05",
+        "produk": "Sepatu Sneakers Putih",
+        "riwayat_klaim_aktif": 0
+    },
 }
 
-# --- 3. PAG CORPUS (Kebijakan Toko) ---
-# Dimuat ke Long Context Window Gemini sesuai proposal Bab 5
-TOKO_POLICY = """
-KEBIJAKAN RETUR TOKO AURAFARMINGLOHYA:
-Pasal 1: Batas waktu klaim retur maksimal adalah 7 hari setelah pesanan dikonfirmasi.
-Pasal 2: Cacat minor (noda < 3cm, jahitan lepas) memenuhi syarat kompensasi parsial (Partial Refund) maksimal Rp 50.000.
-Pasal 3: Cacat mayor (robek besar, barang salah varian) berhak mendapatkan Full Refund atau Tukar Barang.
-Pasal 4: Inkonsistensi warna akibat pencahayaan wajar tidak dianggap cacat.
-Pasal 5: Keputusan akhir berada di tangan admin. Segala bentuk manipulasi foto atau penipuan (item switching) akan ditolak.
-"""
+# --- MOCK DATABASE: Simulasi tabel claims yang masuk ---
+# Di dunia nyata ini adalah Firestore collection "claims"
+SUBMITTED_CLAIMS = []
 
-# --- ENDPOINT UTAMA A.U.R.A ---
-@app.route('/api/claim', methods=['POST'])
-def process_claim():
-    if not model:
-         return jsonify({"error": "API Key Gemini belum diset!"}), 500
 
+def generate_claim_id() -> str:
+    """Generate ID klaim unik seperti: RET-2026-A3B7"""
+    suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+    return f"RET-{datetime.now().year}-{suffix}"
+
+
+# =============================================================================
+# ENDPOINT 1: Verifikasi nomor resi (Gatekeeper Step 1)
+# Frontend memanggil ini saat user klik "Verifikasi Pesanan"
+# =============================================================================
+@app.route('/api/verify_order', methods=['POST'])
+def verify_order():
     try:
         data = request.get_json()
-        resi = data.get('nomor_resi')
-        teks_keluhan = data.get('keluhan')
-        # Untuk demo MVP: foto dikirim sebagai URL atau deskripsi teks sementara
-        # Nanti Arthur bisa integrasikan base64 ke parameter ini
-        foto_klaim = data.get('foto_base64', 'Tidak ada foto dilampirkan') 
+        nomor_resi = data.get('nomor_resi', '').strip().upper()
 
-        if not resi or not teks_keluhan:
-            return jsonify({"error": "Nomor resi dan teks keluhan wajib diisi"}), 400
+        if not nomor_resi:
+            return jsonify({
+                "status": "error",
+                "data": {},
+                "message": "Nomor resi wajib diisi."
+            }), 400
 
-        # TAHAP 2: ORDER LOOKUP
-        order_data = MOCK_FIRESTORE.get(resi)
-        if not order_data:
-            return jsonify({"error": "Nomor resi tidak ditemukan di database"}), 404
+        order = MOCK_ORDERS.get(nomor_resi)
+        if not order:
+            return jsonify({
+                "status": "error",
+                "data": {},
+                "message": f"Nomor resi '{nomor_resi}' tidak ditemukan. Pastikan resi sudah benar."
+            }), 404
 
-        # TAHAP 5: FRAUD SCORE CALCULATION (S1 & S2 di Backend)
-        s1_score = 0
-        s2_score = 0
-        
-        # Kalkulasi S2: Repeat Claim History (Maks 3 Poin)
-        if order_data['riwayat_klaim_90hari'] > 1:
-            s2_score = 3
-        elif order_data['riwayat_klaim_90hari'] == 1:
-            s2_score = 1
-
-        # TAHAP 4: MULTIMODAL ANALYSIS & PAG (S3 & S4 oleh Gemini)
-        prompt_ai = f"""
-        Anda adalah A.U.R.A, AI verifikasi retur e-commerce. 
-        Tugas Anda adalah membaca konteks, menganalisis klaim, dan memberikan rekomendasi bagi admin.
-        
-        [KEBIJAKAN TOKO (PAG CONTEXT)]
-        {TOKO_POLICY}
-
-        [DATA KLAIM CUSTOMER]
-        Produk: {order_data['produk']}
-        Keluhan Teks: "{teks_keluhan}"
-        Data Foto Visual: "{foto_klaim}"
-
-        Instruksi: Evaluasi data di atas dan berikan skor untuk:
-        - S3 (Visual Inconsistency): 0-3 poin. Apakah foto menunjukkan manipulasi atau keausan tidak wajar?
-        - S4 (Text-Visual Mismatch): 0-2 poin. Apakah teks keluhan cocok dengan kerusakan di foto?
-        
-        Berikan jawaban akhir HANYA dalam format JSON dengan key:
-        "s3_score" (int), "s4_score" (int), "analisis_visual" (string singkat), "kutipan_kebijakan" (string referensi pasal), "rekomendasi" (string).
-        Pastikan outputnya murni JSON tanpa backtick atau markdown.
-        """
-
-        response = model.generate_content(prompt_ai)
-        ai_result_text = response.text.strip()
-        
-        # Bersihkan format JSON dari Gemini kalau ada sisa markdown
-        if ai_result_text.startswith("```json"):
-            ai_result_text = ai_result_text[7:-3]
-            
-        import json
-        ai_data = json.loads(ai_result_text)
-
-        # Total Fraud Score
-        total_score = s1_score + s2_score + ai_data.get('s3_score', 0) + ai_data.get('s4_score', 0)
-
-        # TAHAP 6: REPORT DELIVERY
         return jsonify({
             "status": "success",
-            "data_order": {
-                "nomor_resi": resi,
-                "produk": order_data['produk'],
-                "tanggal_beli": order_data['tanggal_beli']
-            },
-            "fraud_score": {
-                "total": total_score,
-                "breakdown": {
-                    "S1_TimeGap": s1_score,
-                    "S2_RepeatClaim": s2_score,
-                    "S3_VisualInconsistency": ai_data.get('s3_score', 0),
-                    "S4_TextVisualMismatch": ai_data.get('s4_score', 0)
-                }
-            },
-            "analisis": {
-                "visual": ai_data.get('analisis_visual', ''),
-                "kebijakan_relevan": ai_data.get('kutipan_kebijakan', ''),
-                "rekomendasi_resolusi": ai_data.get('rekomendasi', '')
+            "message": "Pesanan ditemukan. Silakan lanjutkan pengisian klaim.",
+            "data": {
+                "nomor_resi": nomor_resi,
+                "produk": order["produk"],
+                "tanggal_beli": order["tanggal_beli"],
             }
         }), 200
 
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return jsonify({
+            "status": "error",
+            "data": {},
+            "message": str(e)
+        }), 500
 
+
+# =============================================================================
+# ENDPOINT 2: Submit klaim customer (Claim Form Step 2)
+# Frontend memanggil ini saat user klik "Kirim Klaim ke A.U.R.A"
+# Backend hanya menerima & menyimpan — analisis AI dilakukan di sisi admin
+# =============================================================================
+@app.route('/api/submit_claim', methods=['POST'])
+def submit_claim():
+    try:
+        data = request.get_json()
+
+        # --- Validasi input wajib ---
+        nomor_resi    = data.get('nomor_resi', '').strip().upper()
+        teks_keluhan  = data.get('teks_keluhan', '').strip()
+        foto_base64   = data.get('foto_base64')
+        video_base64  = data.get('video_base64')          # opsional
+        nama_customer = data.get('nama_customer', '').strip()
+        email_customer = data.get('email_customer', '').strip()
+
+        if not nomor_resi or not teks_keluhan or not foto_base64:
+            return jsonify({
+                "status": "error",
+                "data": {},
+                "message": "Nomor resi, deskripsi keluhan, dan foto bukti wajib diisi."
+            }), 400
+
+        # --- Cek resi di database (opsional — jika tidak ada, tetap diterima) ---
+        order = MOCK_ORDERS.get(nomor_resi)
+        produk_nama = order["produk"] if order else "Produk tidak dikenali"
+        is_verified = order is not None
+
+        # --- Simpan ke mock database (nanti diganti Firestore) ---
+        claim_id = generate_claim_id()
+        new_claim = {
+            "claim_id": claim_id,
+            "nomor_resi": nomor_resi,
+            "produk": produk_nama,
+            "nama_customer": nama_customer,
+            "email_customer": email_customer,
+            "teks_keluhan": teks_keluhan,
+            "foto_base64": foto_base64[:50] + "...",  # Potong agar log tidak panjang
+            "video_base64": bool(video_base64),        # Simpan flag saja
+            "resi_terverifikasi": is_verified,
+            "status_klaim": "PENDING_REVIEW",          # Menunggu dianalisis admin
+            "submitted_at": datetime.now().isoformat(),
+        }
+        SUBMITTED_CLAIMS.append(new_claim)
+
+        print(f"[A.U.R.A] Klaim baru masuk: {claim_id} | Resi: {nomor_resi} | Verified: {is_verified} | {nama_customer}")
+
+        return jsonify({
+            "status": "success",
+            "message": "Klaim berhasil diterima. Tim A.U.R.A akan menganalisis dalam waktu kurang dari 10 menit.",
+            "data": {
+                "claim_id": claim_id,
+                "nomor_resi": nomor_resi,
+                "produk": produk_nama,
+                "status_klaim": "PENDING_REVIEW",
+                "estimasi_selesai": "< 10 menit"
+            }
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "data": {},
+            "message": str(e)
+        }), 500
+
+
+# =============================================================================
+# ENDPOINT 3: Health check
+# =============================================================================
 @app.route('/', methods=['GET'])
 def health_check():
-    return jsonify({"message": "A.U.R.A Core System is Live!"}), 200
+    return jsonify({
+        "status": "success",
+        "data": {
+            "version": "1.0.0-mock",
+            "mode": "MOCK — Analisis AI dijalankan di sisi admin",
+            "total_claims": len(SUBMITTED_CLAIMS)
+        },
+        "message": "A.U.R.A Customer API is Live!"
+    }), 200
+
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))

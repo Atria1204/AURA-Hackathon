@@ -1,9 +1,7 @@
-flask
-firebase-admin
-google-generativeai
-python-dotenv
-flask-cors
-gunicorn
 Flask==3.0.3
 Flask-Cors==4.0.0
-google-generativeai==0.5.2
+google-generativeai==0.8.3
+google-api-core
+firebase-admin
+python-dotenv
+gunicorn

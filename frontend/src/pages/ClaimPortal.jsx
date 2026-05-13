@@ -97,10 +97,12 @@ const ClaimPortal = () => {
       teks_keluhan: complaint,
       foto_base64: photoBase64,
       video_base64: videoBase64,
+      nama_customer: customerName,
+      email_customer: customerEmail,
     };
 
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/analyze_claim', {
+      const response = await fetch('http://127.0.0.1:8080/api/submit_claim', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
