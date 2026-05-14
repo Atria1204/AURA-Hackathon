@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import IntelligenceReportModal from '../components/IntelligenceReportModal';
 
 const dummyClaims = [
@@ -8,268 +9,235 @@ const dummyClaims = [
   { id: 4, resi: '#CLM-9915', receipt: 'RCPT-444822', product: 'Minimalist Smartwatch V2', category: 'Wearables', date: 'Oct 23, 2023', time: '02:15 PM', score: 88, image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCBnkMjPJJ4ItHbb8Pw8h5zCN8JS6K3FqLMFLRkr6fQuNGh6EB-91BrxcCiZ2Z-j04JgqKu3YnBpoDijIb8k8CiL22ZC97E1k57acFo83lNDkaR-jKNTHSeyH406oxS6nW-aF7oSbRCz-x9Q1g0mbCOBy3Di-Tdh7t8V3_qrMXwXPqDE3KWr1cUL43T-GuSVCHZnrMbhVylgQ5AsrlgRbeNz5y23eVx3SgHXURZmSOmr11gFc_Nv_5VGbyo9XeD_v4yuRSsm79Bj2Pa' },
 ];
 
+const scoreStyle = (s) => {
+  if (s >= 80) return { bar: 'bg-emerald-500', pill: 'bg-emerald-50 text-emerald-700' };
+  if (s >= 50) return { bar: 'bg-amber-400', pill: 'bg-amber-50 text-amber-700' };
+  return { bar: 'bg-red-500', pill: 'bg-red-50 text-red-700' };
+};
+
+/* ── WhatsApp-style doodle motif for sidebar ── */
+const SIDEBAR_DOODLE = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Cg fill='none' stroke='%23ffffff' stroke-width='0.8' stroke-linecap='round' stroke-linejoin='round' opacity='1'%3E%3C!-- box --%3E%3Crect x='12' y='12' width='16' height='14' rx='2'/%3E%3Cline x1='12' y1='18' x2='28' y2='18'/%3E%3C!-- shield --%3E%3Cpath d='M70 10 L70 20 Q70 28 80 32 Q90 28 90 20 L90 10 Z'/%3E%3Cpath d='M76 19 L79 22 L85 16'/%3E%3C!-- checkmark circle --%3E%3Ccircle cx='150' cy='20' r='10'/%3E%3Cpath d='M145 20 L148 23 L155 16'/%3E%3C!-- star --%3E%3Cpath d='M30 70 L32 76 L38 76 L33 80 L35 86 L30 82 L25 86 L27 80 L22 76 L28 76 Z'/%3E%3C!-- clock --%3E%3Ccircle cx='90' cy='75' r='10'/%3E%3Cline x1='90' y1='75' x2='90' y2='69'/%3E%3Cline x1='90' y1='75' x2='95' y2='77'/%3E%3C!-- chat bubble --%3E%3Cpath d='M140 65 L165 65 Q168 65 168 68 L168 80 Q168 83 165 83 L152 83 L148 88 L148 83 L143 83 Q140 83 140 80 L140 68 Q140 65 143 65 Z'/%3E%3Cline x1='146' y1='72' x2='162' y2='72'/%3E%3Cline x1='146' y1='77' x2='157' y2='77'/%3E%3C!-- tag --%3E%3Cpath d='M20 135 L30 125 L40 125 L40 135 L30 145 Z'/%3E%3Ccircle cx='36' cy='129' r='2'/%3E%3C!-- document --%3E%3Crect x='80' y='125' width='14' height='18' rx='2'/%3E%3Cline x1='84' y1='131' x2='90' y2='131'/%3E%3Cline x1='84' y1='135' x2='90' y2='135'/%3E%3Cline x1='84' y1='139' x2='88' y2='139'/%3E%3C!-- return arrow --%3E%3Cpath d='M140 140 Q140 130 150 130 L155 130'/%3E%3Cpath d='M152 126 L156 130 L152 134'/%3E%3C!-- camera --%3E%3Crect x='15' y='170' width='18' height='13' rx='2'/%3E%3Ccircle cx='24' cy='177' r='4'/%3E%3Cpath d='M20 170 L22 166 L26 166 L28 170'/%3E%3C!-- lock --%3E%3Crect x='82' y='176' width='12' height='10' rx='2'/%3E%3Cpath d='M84 176 L84 172 Q84 168 88 168 Q92 168 92 172 L92 176'/%3E%3C!-- thumbs up --%3E%3Cpath d='M145 175 L150 170 L153 170 L153 182 L148 182'/%3E%3Crect x='140' y='175' width='5' height='8' rx='1'/%3E%3C/g%3E%3C/svg%3E")`;
+
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const [selectedClaim, setSelectedClaim] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [timeFilter, setTimeFilter] = useState('today');
 
-  const getScoreColorClass = (score) => {
-    if (score >= 80) return { bg: 'bg-emerald-500', text: 'text-emerald-800', lightBg: 'bg-emerald-100' };
-    if (score >= 50) return { bg: 'bg-amber-400', text: 'text-amber-800', lightBg: 'bg-amber-100' };
-    return { bg: 'bg-error', text: 'text-on-error-container', lightBg: 'bg-error-container' };
+  const handleLogout = () => {
+    sessionStorage.removeItem('aura_admin_auth');
+    navigate('/login', { replace: true });
   };
 
   return (
-    <div className="bg-background text-on-background min-h-screen">
-      
-      {/* TopNavBar (Mobile) */}
-      <header className="md:hidden fixed top-0 w-full flex justify-between items-center px-8 h-16 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 shadow-sm z-40 text-primary">
-        <div className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">A.U.R.A</div>
-        <div className="flex items-center gap-4">
-          <span className="material-symbols-outlined cursor-pointer text-outline hover:bg-surface-container p-2 rounded-full transition-colors">notifications</span>
-          <span className="material-symbols-outlined cursor-pointer text-outline hover:bg-surface-container p-2 rounded-full transition-colors">help</span>
-          <img alt="Admin profile avatar" className="w-8 h-8 rounded-full ml-2" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBiS7Q4htnrFZC8z4wgIx0438cQxNS6MuJAgmwBLpNkZVghYdv7zOHZVVXKkowRWQTJZFfndPr-YKmlMg42A66-xr9jg2EtquRKRffTEvOauFlJCUz-Km4WRBM1ye80lt5PUe7Mtmg7c43WMkch3jox458zKqo7NlA7j3lE3NSO6NFLBLyH7xmtENfy2Enrn1ebav0BcF677VeC-Ab5vKWFK5AK416zx61t2xfRNqE1EDBl6z0L8HcibgzOreciKT6lf6IEIr-8YZDB" />
-        </div>
-      </header>
+    <div className="flex h-screen overflow-hidden bg-[#f4f1ea] text-on-surface">
 
-      {/* SideNavBar (Desktop) */}
-      <nav className="hidden md:flex flex-col h-screen w-64 fixed left-0 top-0 border-r border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-950 text-primary font-medium p-6 gap-8 z-50">
-        <div className="flex items-center gap-3">
-          <img alt="A.U.R.A" className="w-10 h-10 rounded-lg" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAtzPxdVqHqAof3GNcyMXyZMu_1sYtup3B55J5XKGHRu9zWxJWxNIS679nRCMjUmnHWrMKX1Clq0Jpvvl_mJibkhWa--uphecLyC-9heLoCrWEE8z65c91ijFfKOJPSgXmIHB_XP08vT9k7L7ELnF9feIG88_f8FRm_WzxWC5DbTkUTvupUR9Lzev6UL2HIa3aiJkU3uwr6URDYZUgXDVvVZ0CCpzGnSafD-zzwqzm_9XtnWmVdEbWoYO4QFLB7ibnIdIeFiAQMFL4b" />
-          <div>
-            <div className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-widest">A.U.R.A</div>
-            <div className="text-[10px] text-outline uppercase tracking-wider">Intelligence Report</div>
+      {/* Sidebar — w-72 matching Claim Detail reference */}
+      <nav className="flex flex-col h-full w-72 bg-[#1a3636] text-white fixed left-0 top-0 z-20 shadow-xl overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none opacity-[0.07]"
+          style={{ backgroundImage: SIDEBAR_DOODLE, backgroundSize: '200px 200px', backgroundRepeat: 'repeat' }} />
+
+        <div className="relative z-10 p-6 flex flex-col h-full">
+          <div className="flex flex-col mb-8">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="material-symbols-outlined text-white text-3xl">insights</span>
+              <h2 className="text-xl font-black text-white uppercase tracking-widest">A.U.R.A</h2>
+            </div>
+            <p className="text-xs text-white/50 font-medium ml-9">Intelligence Report</p>
           </div>
-        </div>
-        
-        <div className="flex flex-col gap-2 flex-grow">
-          <a 
-            onClick={(e) => { e.preventDefault(); setActiveTab('dashboard'); }}
-            className={`flex items-center gap-3 px-4 py-3 transition-all duration-200 rounded-xl ${
-              activeTab === 'dashboard' 
-                ? 'text-primary bg-primary-fixed/30 hover:bg-primary-fixed/50' 
-                : 'text-outline hover:bg-surface-container hover:text-primary'
-            }`} 
-            href="#"
-          >
-            <span className="material-symbols-outlined">dashboard</span>
-            Dashboard
-          </a>
-          <a 
-            onClick={(e) => { e.preventDefault(); setActiveTab('claims'); }}
-            className={`flex items-center gap-3 px-4 py-3 transition-all duration-200 rounded-xl ${
-              activeTab === 'claims' 
-                ? 'text-primary bg-primary-fixed/30 hover:bg-primary-fixed/50' 
-                : 'text-outline hover:bg-surface-container hover:text-primary'
-            }`} 
-            href="#"
-          >
-            <span className="material-symbols-outlined">assignment</span>
-            Claim List
-          </a>
-          <a className="flex items-center gap-3 px-4 py-3 text-outline hover:bg-surface-container hover:text-primary transition-all duration-200 rounded-xl" href="#">
-            <span className="material-symbols-outlined">settings</span>
-            Settings
-          </a>
-        </div>
-        
-        <div className="flex flex-col gap-2 mt-auto border-t border-slate-100 pt-6">
-          <a className="flex items-center gap-3 px-4 py-3 text-outline hover:bg-surface-container hover:text-primary transition-all duration-200 rounded-xl" href="#">
-            <span className="material-symbols-outlined">contact_support</span>
-            Support
-          </a>
-          <a className="flex items-center gap-3 px-4 py-3 text-outline hover:bg-surface-container hover:text-primary transition-all duration-200 rounded-xl" href="#">
-            <span className="material-symbols-outlined">logout</span>
-            Logout
-          </a>
+
+          <button className="w-full bg-[#2d5252] hover:bg-[#3d6b6b] text-white text-label-md py-3 px-4 rounded-xl flex justify-center items-center gap-2 mb-8 transition-all duration-200 shadow-lg shadow-black/20">
+            New Return Claim
+          </button>
+
+          <ul className="space-y-1 flex-1">
+            {[
+              { tab: 'dashboard', icon: 'dashboard', label: 'Dashboard' },
+              { tab: 'claims', icon: 'assignment', label: 'Claim List' },
+              { tab: 'settings', icon: 'settings', label: 'Settings' },
+            ].map(({ tab, icon, label }) => (
+              <li key={tab}>
+                <a href="#" onClick={(e) => { e.preventDefault(); setActiveTab(tab); }}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-[13px] font-medium transition-all duration-200 ${
+                    activeTab === tab
+                      ? 'bg-white/10 text-white border-l-4 border-white rounded-l-none'
+                      : 'text-white/60 hover:bg-white/10 hover:text-white'
+                  }`}>
+                  <span className="material-symbols-outlined text-[20px]">{icon}</span>
+                  {label}
+                </a>
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-auto pt-6 border-t border-white/20 space-y-1">
+            <a href="#"
+              className="flex items-center gap-3 px-4 py-3 text-white/60 hover:bg-white/10 hover:text-white transition-all rounded-xl text-[13px] font-medium">
+              <span className="material-symbols-outlined text-[20px]">contact_support</span>
+              Support
+            </a>
+            <a href="#" onClick={(e) => { e.preventDefault(); handleLogout(); }}
+              className="flex items-center gap-3 px-4 py-3 text-white/60 hover:bg-white/10 hover:text-red-300 transition-all rounded-xl text-[13px] font-medium">
+              <span className="material-symbols-outlined text-[20px]">logout</span>
+              Logout
+            </a>
+          </div>
         </div>
       </nav>
 
-      {/* Main Content */}
-      <main className="pt-20 md:pt-8 pb-24 md:pb-8 px-6 md:pl-72 md:pr-12 min-h-screen">
-        
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-4">
-          <div>
-            <h1 className="text-h1 text-on-surface">{activeTab === 'dashboard' ? 'Dashboard Overview' : 'Claim Management'}</h1>
-            <p className="text-body-md text-on-surface-variant mt-1">
-              {activeTab === 'dashboard' ? 'Real-time intelligence and claim processing metrics.' : 'Manage and process customer return claims.'}
-            </p>
-          </div>
-          {activeTab === 'dashboard' && (
-            <div className="flex items-center gap-1 bg-surface-container-low p-1.5 rounded-lg border border-outline-variant">
-              <button 
-                onClick={() => setTimeFilter('today')}
-                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${timeFilter === 'today' ? 'bg-white shadow-sm text-on-surface' : 'text-on-surface-variant hover:text-on-surface'}`}
-              >Today</button>
-              <button 
-                onClick={() => setTimeFilter('7days')}
-                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${timeFilter === '7days' ? 'bg-white shadow-sm text-on-surface' : 'text-on-surface-variant hover:text-on-surface'}`}
-              >7 Days</button>
-              <button 
-                onClick={() => setTimeFilter('30days')}
-                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${timeFilter === '30days' ? 'bg-white shadow-sm text-on-surface' : 'text-on-surface-variant hover:text-on-surface'}`}
-              >30 Days</button>
-            </div>
-          )}
-        </div>
-
-        {/* Stats Cards */}
-        {activeTab === 'dashboard' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-            
-            <div className="bg-surface-container-lowest p-6 rounded-[24px] antigravity-shadow border border-slate-100 flex flex-col justify-between h-[160px] relative overflow-hidden group">
-              <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary-fixed rounded-full opacity-20 group-hover:scale-150 transition-transform duration-500 ease-out"></div>
-              <div>
-                <div className="flex items-center gap-2 mb-2 text-on-surface-variant text-label-md">
-                  <span className="material-symbols-outlined text-[18px]">receipt_long</span>
-                  Total Claims Today
-                </div>
-                <div className="text-h1 text-on-surface">142</div>
-              </div>
-              <div className="flex items-center text-emerald-600 text-label-sm gap-1 bg-emerald-50 w-fit px-2 py-1 rounded-md">
-                <span className="material-symbols-outlined text-[14px]">trending_up</span>
-                +12% vs yesterday
-              </div>
-            </div>
-
-            <div className="bg-surface-container-lowest p-6 rounded-[24px] antigravity-shadow border border-slate-100 flex flex-col justify-between h-[160px] relative overflow-hidden group">
-              <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary-fixed rounded-full opacity-20 group-hover:scale-150 transition-transform duration-500 ease-out"></div>
-              <div>
-                <div className="flex items-center gap-2 mb-2 text-on-surface-variant text-label-md">
-                  <span className="material-symbols-outlined text-[18px]">pending_actions</span>
-                  Claims Pending Decision
-                </div>
-                <div className="text-h1 text-on-surface">28</div>
-              </div>
-              <div className="w-full bg-slate-100 h-1.5 rounded-full mt-auto mb-1">
-                <div className="bg-tertiary-container h-1.5 rounded-full w-[20%]"></div>
-              </div>
-            </div>
-
-            <div className="bg-surface-container-lowest p-6 rounded-[24px] antigravity-shadow border border-slate-100 flex flex-col justify-between h-[160px] relative overflow-hidden group">
-              <div className="absolute -right-4 -top-4 w-24 h-24 bg-surface-variant rounded-full opacity-50 group-hover:scale-150 transition-transform duration-500 ease-out"></div>
-              <div>
-                <div className="flex items-center gap-2 mb-2 text-on-surface-variant text-label-md">
-                  <span className="material-symbols-outlined text-[18px]">timer</span>
-                  Avg. Resolution Time
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <div className="text-h1 text-on-surface">8</div>
-                  <div className="text-body-sm text-on-surface-variant">Mins</div>
-                </div>
-              </div>
-              <div className="flex items-center text-emerald-600 text-label-sm gap-1 bg-emerald-50 w-fit px-2 py-1 rounded-md">
-                <span className="material-symbols-outlined text-[14px]">trending_down</span>
-                -2 mins vs avg
-              </div>
-            </div>
-
-            <div className="bg-surface-container-lowest p-6 rounded-[24px] antigravity-shadow border border-slate-100 flex flex-col justify-between h-[160px] relative overflow-hidden group bg-gradient-to-br from-white to-primary-fixed/20">
-              <div>
-                <div className="flex items-center gap-2 mb-2 text-primary text-label-md">
-                  <span className="material-symbols-outlined text-[18px]">verified_user</span>
-                  Avg. Trust Score
-                </div>
-                <div className="flex items-baseline gap-1">
-                  <div className="text-h1 text-primary">94</div>
-                  <div className="text-body-sm text-primary">/100</div>
-                </div>
-              </div>
-              <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                <div className="bg-gradient-to-r from-emerald-400 to-primary h-full w-[94%] rounded-full"></div>
-              </div>
-            </div>
-
-          </div>
-        )}
-
-        {/* Table Area */}
-        <div className="bg-surface-container-lowest rounded-[24px] antigravity-shadow border border-slate-100 overflow-hidden">
-          <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-white">
-            <div>
-              <h2 className="text-h2 text-on-surface">Daftar Klaim</h2>
-              <p className="text-body-sm text-on-surface-variant mt-1">Recent return requests requiring review or automated processing.</p>
-            </div>
-            <button className="flex items-center gap-2 text-primary-container text-label-md hover:bg-primary-fixed/30 px-4 py-2 rounded-lg transition-colors">
-              <span className="material-symbols-outlined text-[20px]">filter_list</span>
-              Filter
+      {/* Top Header — fixed to the right of sidebar */}
+      <header className="fixed top-0 right-0 w-[calc(100%-18rem)] flex justify-end items-center px-8 h-16 bg-white/90 backdrop-blur-md z-40 border-b border-slate-200/40">
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4 text-slate-400">
+            <button className="cursor-pointer active:scale-95 duration-200 hover:bg-slate-100 transition-colors p-2 rounded-xl">
+              <span className="material-symbols-outlined">notifications</span>
+            </button>
+            <button className="cursor-pointer active:scale-95 duration-200 hover:bg-slate-100 transition-colors p-2 rounded-xl">
+              <span className="material-symbols-outlined">help</span>
             </button>
           </div>
+          <img
+            alt="Admin profile avatar"
+            className="h-8 w-8 rounded-full border border-slate-200 object-cover"
+            src="https://lh3.googleusercontent.com/aida-public/AB6AXuAieXVlEmjpFxMZxsues_GI7P1JHImjB0ufTV4f8kSrZjZcgTeGA7g4Y4fAdoZiA_fWBHYa8c3jB-KyPkxLZMq8IL3gQdrk7-CS-lyhKlVw8eiDaa5v924xC7NS4GSLpYpgIfzQcwxqC-FjBDLnjmVkKbiW1g8WdPVPYTQEgHetMIhKAsNcLmMBQYbpfRsupwOOz16017GbApApxX2EQ0YJKrkE2HkRT-ENCPENMOMSV3I6HJuoMIMEZnvJcsk52j5tT-bMnemE7-gw"
+          />
+        </div>
+      </header>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-surface-container-low text-on-surface-variant text-label-sm uppercase tracking-wider">
-                  <th className="px-8 py-4 font-medium border-b border-slate-200">Claim ID</th>
-                  <th className="px-8 py-4 font-medium border-b border-slate-200">Receipt No</th>
-                  <th className="px-8 py-4 font-medium border-b border-slate-200">Product</th>
-                  <th className="px-8 py-4 font-medium border-b border-slate-200">Date</th>
-                  <th className="px-8 py-4 font-medium border-b border-slate-200">AI Trust Score</th>
-                  <th className="px-8 py-4 font-medium border-b border-slate-200 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="text-body-sm text-on-surface divide-y divide-slate-100">
-                {dummyClaims.map((claim) => {
-                  const colors = getScoreColorClass(claim.score);
-                  return (
-                    <tr key={claim.id} className="hover:bg-slate-50 transition-colors cursor-pointer group" onClick={() => setSelectedClaim(claim)}>
-                      <td className="px-8 py-5 font-medium text-primary">{claim.resi}</td>
-                      <td className="px-8 py-5 text-on-surface-variant">{claim.receipt}</td>
-                      <td className="px-8 py-5">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-lg bg-slate-100 flex-shrink-0 flex items-center justify-center overflow-hidden ${!claim.image ? 'text-slate-400' : ''}`}>
-                            {claim.image ? (
-                              <img src={claim.image} alt={claim.product} className="w-full h-full object-cover" />
-                            ) : (
-                              <span className="material-symbols-outlined">inventory_2</span>
-                            )}
-                          </div>
-                          <div>
-                            <div className="font-medium text-on-surface">{claim.product}</div>
-                            <div className="text-[12px] text-on-surface-variant">{claim.category}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-8 py-5 text-on-surface-variant">
-                        {claim.date} <br /><span className="text-[12px]">{claim.time}</span>
-                      </td>
-                      <td className="px-8 py-5">
-                        <div className="flex items-center gap-2">
-                          <div className="w-16 bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                            <div className={`${colors.bg} h-full`} style={{ width: `${claim.score}%` }}></div>
-                          </div>
-                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-semibold ${colors.lightBg} ${colors.text}`}>
-                            {claim.score}%
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-8 py-5 text-right">
-                        <button className="text-on-surface-variant hover:text-primary transition-colors p-2">
-                          <span className="material-symbols-outlined">more_vert</span>
-                        </button>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+      {/* Main — offset by sidebar width, with top padding for header */}
+      <main className="flex-1 ml-72 pt-24 px-8 pb-12 overflow-y-auto bg-white min-h-screen bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]">
+        <div className="max-w-6xl mx-auto">
+
+          {/* Page Header */}
+          <div className="flex justify-between items-end mb-10">
+            <div>
+              <h1 className="text-h1 text-on-surface">
+                {activeTab === 'dashboard' ? 'Dashboard Overview' : 'Claim Management'}
+              </h1>
+              <p className="text-body-md text-on-surface-variant mt-1">
+                {activeTab === 'dashboard'
+                  ? 'Real-time intelligence and claim processing metrics.'
+                  : 'Manage and process customer return claims.'}
+              </p>
+            </div>
+            {activeTab === 'dashboard' && (
+              <div className="flex bg-white rounded-lg p-1 shadow-sm border border-outline-variant/30">
+                {[['today','Today'],['7days','7 Days'],['30days','30 Days']].map(([val, label]) => (
+                  <button key={val} onClick={() => setTimeFilter(val)}
+                    className={`px-4 py-1.5 text-label-sm rounded-md transition-colors ${
+                      timeFilter === val ? 'bg-[#f0f3ff] text-on-surface shadow-sm' : 'text-on-surface-variant hover:text-on-surface'
+                    }`}>{label}</button>
+                ))}
+              </div>
+            )}
           </div>
-          
-          <div className="px-8 py-4 border-t border-slate-100 flex items-center justify-between bg-surface-bright">
-            <div className="text-sm text-on-surface-variant">Showing <span className="font-medium">1</span> to <span className="font-medium">4</span> of <span className="font-medium">28</span> results</div>
-            <div className="flex gap-2">
-              <button className="px-3 py-1 border border-outline-variant rounded-md text-sm text-on-surface-variant hover:bg-surface-container disabled:opacity-50" disabled>Previous</button>
-              <button className="px-3 py-1 border border-outline-variant rounded-md text-sm text-on-surface-variant hover:bg-surface-container">Next</button>
+
+          {/* Metric Cards */}
+          {activeTab === 'dashboard' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+              {[
+                { icon: 'receipt_long', label: 'Total Claims Today', value: '142', footer: <span className="flex items-center gap-1 text-teal-700 bg-teal-50 w-fit px-2 py-1 rounded-md text-xs font-medium"><span className="material-symbols-outlined text-[14px]">trending_up</span>+12% vs yesterday</span> },
+                { icon: 'pending_actions', label: 'Claims Pending Decision', value: '28', footer: <div className="w-full bg-gray-100 rounded-full h-1.5"><div className="bg-[#2d5252] h-1.5 rounded-full w-[30%]" /></div> },
+                { icon: 'timer', label: 'Avg. Resolution Time', value: <><span className="text-h1">8</span><span className="text-body-sm text-on-surface-variant ml-1">Mins</span></>, footer: <span className="flex items-center gap-1 text-teal-700 bg-teal-50 w-fit px-2 py-1 rounded-md text-xs font-medium"><span className="material-symbols-outlined text-[14px]">trending_down</span>-2 mins vs avg</span> },
+                { icon: 'verified_user', label: 'Avg. Trust Score', value: <><span className="text-h1">94</span><span className="text-body-sm text-on-surface-variant ml-1">/100</span></>, footer: <div className="w-full bg-gray-100 rounded-full h-1.5"><div className="bg-[#2d5252] h-1.5 rounded-full w-[94%]" /></div> },
+              ].map(({ icon, label, value, footer }, i) => (
+                <div key={i} className="bg-white rounded-2xl p-6 shadow-card relative overflow-hidden flex flex-col justify-between h-40 border border-white">
+                  {/* All cards use the same teal-50 accent blob — matching reference */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-teal-50 rounded-bl-full -mr-10 -mt-10 opacity-70" />
+                  <div className="relative z-10">
+                    <div className="flex items-center gap-2 text-on-surface-variant mb-1">
+                      <span className="material-symbols-outlined text-sm">{icon}</span>
+                      <span className="text-label-sm">{label}</span>
+                    </div>
+                    <div className="mt-2">{typeof value === 'string' ? <span className="text-h1">{value}</span> : value}</div>
+                  </div>
+                  <div className="relative z-10">{footer}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Table */}
+          <div className="bg-white rounded-2xl shadow-card overflow-hidden border border-white/80">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-white">
+              <div>
+                <h2 className="text-h2 text-on-surface">Daftar Klaim</h2>
+                <p className="text-body-sm text-on-surface-variant mt-1">Recent return requests requiring review or automated processing.</p>
+              </div>
+              <button className="bg-[#2d5252] hover:bg-[#1a3636] text-white px-4 py-2 rounded-lg text-label-md flex items-center gap-2 transition-colors duration-200 shadow-sm">
+                <span className="material-symbols-outlined text-[18px]">filter_list</span>Filter
+              </button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-[#fcfbf9] text-on-surface-variant text-label-sm border-b border-gray-100">
+                    {['Claim ID','Receipt No','Product','Date','AI Trust Score',''].map((h, i) => (
+                      <th key={i} className={`py-4 px-6 font-medium tracking-wider uppercase ${i === 5 ? 'text-right' : ''}`}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50 bg-white">
+                  {dummyClaims.map((claim) => {
+                    const st = scoreStyle(claim.score);
+                    return (
+                      <tr key={claim.id} className="hover:bg-gray-50/70 transition-colors cursor-pointer" onClick={() => setSelectedClaim(claim)}>
+                        <td className="py-4 px-6 text-label-md text-[#2d5252] hover:underline">{claim.resi}</td>
+                        <td className="py-4 px-6 text-body-sm text-on-surface-variant">{claim.receipt}</td>
+                        <td className="py-4 px-6">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
+                              {claim.image ? <img src={claim.image} alt={claim.product} className="w-full h-full object-cover" />
+                                : <span className="material-symbols-outlined text-gray-400">inventory_2</span>}
+                            </div>
+                            <div>
+                              <div className="text-label-md text-on-surface">{claim.product}</div>
+                              <div className="text-xs text-on-surface-variant">{claim.category}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-4 px-6">
+                          <div className="text-body-sm text-on-surface">{claim.date}</div>
+                          <div className="text-xs text-on-surface-variant">{claim.time}</div>
+                        </td>
+                        <td className="py-4 px-6">
+                          <div className="flex items-center gap-3">
+                            <div className="w-16 bg-gray-100 rounded-full h-1.5">
+                              <div className={`${st.bar} h-1.5 rounded-full`} style={{ width: `${claim.score}%` }} />
+                            </div>
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded-md ${st.pill}`}>{claim.score}%</span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-6 text-right">
+                          <button className="text-on-surface-variant hover:text-on-surface p-1 rounded-md hover:bg-gray-100 transition-colors"
+                            onClick={(e) => { e.stopPropagation(); setSelectedClaim(claim); }}>
+                            <span className="material-symbols-outlined">more_vert</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="p-4 border-t border-gray-100 bg-[#fcfbf9] flex justify-between items-center">
+              <div className="text-body-sm text-on-surface-variant">
+                Showing <span className="font-medium text-on-surface">1</span> to{' '}
+                <span className="font-medium text-on-surface">4</span> of{' '}
+                <span className="font-medium text-on-surface">28</span> results
+              </div>
+              <div className="flex gap-2">
+                <button className="px-3 py-1.5 border border-outline-variant rounded-md text-on-surface-variant text-label-sm bg-white hover:bg-gray-50 disabled:opacity-50 transition-colors" disabled>Previous</button>
+                <button className="px-3 py-1.5 border border-outline-variant rounded-md text-on-surface text-label-sm bg-white hover:bg-gray-50 transition-colors">Next</button>
+              </div>
             </div>
           </div>
         </div>
       </main>
 
-      {/* Modal Overlay for Intelligence Report */}
-      {selectedClaim && (
-        <IntelligenceReportModal claim={selectedClaim} onClose={() => setSelectedClaim(null)} />
-      )}
+      {selectedClaim && <IntelligenceReportModal claim={selectedClaim} onClose={() => setSelectedClaim(null)} />}
     </div>
   );
 };
