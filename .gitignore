@@ -1,10 +1,16 @@
 # --- Backend (Python) ---
-     backend/.env
-     backend/firebase-key.json
-     backend/__pycache__/
-     *.pyc
+backend/.env
+backend/*.json
+backend/__pycache__/
+backend/venv/
+*.pyc
 
 # --- Frontend (React/Node) ---
-     frontend/node_modules/
-     frontend/.env
-     frontend/.env.local
+frontend/node_modules/
+frontend/.env
+frontend/.env.local
+frontend/dist/
+
+# --- General ---
+.DS_Store
+.vite/

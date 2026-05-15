@@ -3,19 +3,19 @@ import React, { useState, useRef, useCallback } from 'react';
 /* ─── Swipe animation styles injected once ─────────────────────────── */
 const ANIM_CSS = `
 @keyframes slideOutLeft {
-  from { transform: translateX(0); opacity: 1; }
-  to   { transform: translateX(-60px); opacity: 0; }
+  from { transform: translate3d(0, 0, 0); opacity: 1; }
+  to   { transform: translate3d(-30px, 0, 0); opacity: 0; }
 }
 @keyframes slideInRight {
-  from { transform: translateX(60px); opacity: 0; }
-  to   { transform: translateX(0); opacity: 1; }
+  from { transform: translate3d(30px, 0, 0); opacity: 0; }
+  to   { transform: translate3d(0, 0, 0); opacity: 1; }
 }
 @keyframes fadeInUp {
   from { transform: translateY(20px); opacity: 0; }
   to   { transform: translateY(0); opacity: 1; }
 }
-.slide-out { animation: slideOutLeft 0.35s ease forwards; }
-.slide-in  { animation: slideInRight 0.38s ease forwards; }
+.slide-out { animation: slideOutLeft 0.15s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.slide-in  { animation: slideInRight 0.2s cubic-bezier(0.0, 0, 0.2, 1) forwards; }
 .fade-up   { animation: fadeInUp 0.5s ease forwards; }
 
 /* ── Responsive overrides ── */
@@ -119,9 +119,10 @@ const FilePreview = ({ preview, fileName, label, isVideo, onRemove }) => (
 const ClaimPortal = () => {
   const [resi, setResi]   = useState('');
   const [phone, setPhone] = useState('');
-  /* 'idle' | 'exiting' | 'entered' | 'exiting2' | 'success' */
+  /* 'idle' | 'exiting' | 'entered' | 'exiting2' | 'success' | 'exiting3' | 'details' */
   const [stepState, setStepState] = useState('idle');
   const [claimId, setClaimId] = useState('');
+  const [orderData, setOrderData] = useState(null);
 
   const [complaint, setComplaint]         = useState('');
   const [photoBase64, setPhotoBase64]     = useState(null);
@@ -145,15 +146,34 @@ const ClaimPortal = () => {
   const isFormValid   = resi.trim() !== '' && phone.trim().length === 4;
 
   /* ── Verify with swipe animation ── */
-  const handleVerify = () => {
+  const handleVerify = async () => {
     if (!isFormValid) return;
-    setStepState('exiting');          // trigger slide-out
-    setTimeout(() => setStepState('entered'), 380); // after anim, show step 2
+    setIsLoading(true); setAlertInfo(null);
+    try {
+      const response = await fetch('http://127.0.0.1:8080/api/verify_order', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nomor_resi: resi }),
+      });
+      const result = await response.json();
+      if (response.ok && result.status === 'success') {
+        setOrderData(result.data);
+        setStepState('exiting');          // trigger slide-out
+        setTimeout(() => setStepState('entered'), 150); // after anim, show step 2
+      } else {
+        setAlertInfo({ type: 'error', message: result.message || 'Verifikasi gagal.' });
+      }
+    } catch (error) {
+      setAlertInfo({ type: 'error', message: 'Gagal terhubung ke server.' });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   /* ── File helpers ── */
   const processPhoto = (file) => {
     if (!file) return;
+    if (file.size > 1024 * 1024) {
+      setAlertInfo({ type: 'error', message: 'Ukuran foto maksimal 1MB (Limit Firestore).' }); return;
+    }
     if (!file.type.match('image/jpeg') && !file.type.match('image/png')) {
       setAlertInfo({ type: 'error', message: 'Hanya JPG atau PNG.' }); return;
     }
@@ -165,6 +185,9 @@ const ClaimPortal = () => {
   };
   const processVideo = (file) => {
     if (!file) return;
+    if (file.size > 1024 * 1024) {
+      setAlertInfo({ type: 'error', message: 'Ukuran video maksimal 1MB (Limit Firestore).' }); return;
+    }
     if (!file.type.match('video/mp4')) {
       setAlertInfo({ type: 'error', message: 'Hanya MP4.' }); return;
     }
@@ -191,24 +214,10 @@ const ClaimPortal = () => {
   const resetAll = () => {
     setComplaint(''); removePhoto(); removeVideo();
     setStepState('idle'); setResi(''); setPhone('');
-    setClaimId(''); setAlertInfo(null);
+    setClaimId(''); setAlertInfo(null); setOrderData(null);
   };
 
   /* ── Submit ── */
-  /* ── Generate Claim ID ── */
-  const generateClaimId = () => {
-    const num = Math.floor(1000 + Math.random() * 9000);
-    return `#RET-${new Date().getFullYear()}-${num}`;
-  };
-
-  /* ── Swipe to success ── */
-  const goToSuccess = () => {
-    const id = generateClaimId();
-    setClaimId(id);
-    setStepState('exiting2');
-    setTimeout(() => setStepState('success'), 380);
-  };
-
   const handleSubmitClaim = async () => {
     if (!complaint || !photoBase64) {
       setAlertInfo({ type: 'error', message: 'Lengkapi keluhan dan foto bukti.' }); return;
@@ -218,17 +227,19 @@ const ClaimPortal = () => {
     try {
       const response = await fetch('http://127.0.0.1:8080/api/submit_claim', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
-      }).catch(() => { throw new Error('NetworkError'); });
-      if (response?.status === 429) {
+      });
+      const result = await response.json();
+      if (response.status === 429) {
         setAlertInfo({ type: 'error', message: 'Rate limit (429). Coba lagi.' });
-      } else if (response?.ok) {
-        goToSuccess();
+      } else if (response.ok && result.status === 'success') {
+        setClaimId(result.data.claim_id);
+        setStepState('exiting2');
+        setTimeout(() => setStepState('success'), 150);
       } else {
-        setAlertInfo({ type: 'error', message: `Error ${response?.status}` });
+        setAlertInfo({ type: 'error', message: result.message || `Error ${response.status}` });
       }
-    } catch {
-      await new Promise(r => setTimeout(r, 1500));
-      goToSuccess();
+    } catch (error) {
+      setAlertInfo({ type: 'error', message: 'Gagal mengirim klaim.' });
     } finally { setIsLoading(false); }
   };
 
@@ -289,13 +300,13 @@ const ClaimPortal = () => {
           {/* ── Horizontal Stepper ── */}
           <div className="portal-stepper">
             {/* Step 1 */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: stepState === 'details' ? 0.4 : 1 }}>
+              <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: stepState === 'details' ? 'transparent' : '#fff', border: stepState === 'details' ? '2px solid rgba(255,255,255,0.4)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 {isVerified
                   ? <svg style={{ width: '18px', height: '18px', color: '#1a4742' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}/>
                     </svg>
-                  : <span style={{ fontSize: '14px', fontWeight: 600, color: '#1a4742' }}>1</span>
+                  : <span style={{ fontSize: '14px', fontWeight: 600, color: stepState === 'details' ? 'rgba(255,255,255,0.6)' : '#1a4742' }}>1</span>
                 }
               </div>
               <div className="step-label">
@@ -344,6 +355,17 @@ const ClaimPortal = () => {
             {(stepState === 'idle' || stepState === 'exiting') && (
               <div className={stepState === 'exiting' ? 'slide-out' : ''} style={{ backgroundColor: '#fff', padding: '2rem', boxShadow: '0 10px 40px rgba(0,0,0,0.15)', borderRadius: '16px' }}>
                 <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#111827', marginBottom: '1.5rem' }}>Verifikasi Pesanan</h2>
+                
+                {/* Error alert for Step 1 */}
+                {alertInfo?.type === 'error' && (
+                  <div style={{ marginBottom: '1rem', padding: '0.75rem', borderRadius: '12px', backgroundColor: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '14px' }}>
+                    <svg style={{ width: '16px', height: '16px', marginTop: '2px', flexShrink: 0 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    {alertInfo.message}
+                  </div>
+                )}
+
                 <form style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }} onSubmit={(e) => e.preventDefault()}>
                   <div>
                     <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#1f2937', marginBottom: '0.5rem' }} htmlFor="nomorResi">
@@ -366,15 +388,16 @@ const ClaimPortal = () => {
                     />
                   </div>
                   <button
-                    type="button" onClick={handleVerify} disabled={!isFormValid}
+                    type="button" onClick={handleVerify} disabled={!isFormValid || isLoading}
                     style={{
                       width: '100%', fontWeight: 600, padding: '0.75rem 1rem', borderRadius: '12px',
-                      transition: 'all 0.2s', border: 'none', cursor: isFormValid ? 'pointer' : 'not-allowed', fontSize: '14px',
-                      backgroundColor: isFormValid ? '#1a4742' : '#f3f4f6',
-                      color: isFormValid ? '#fff' : '#9ca3af',
+                      transition: 'all 0.2s', border: 'none', cursor: isFormValid && !isLoading ? 'pointer' : 'not-allowed', fontSize: '14px',
+                      backgroundColor: isFormValid && !isLoading ? '#1a4742' : '#f3f4f6',
+                      color: isFormValid && !isLoading ? '#fff' : '#9ca3af',
+                      display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem'
                     }}
                   >
-                    Verifikasi Pesanan
+                    {isLoading ? <><span className="material-symbols-outlined animate-spin" style={{ fontSize: '18px' }}>sync</span>Memverifikasi...</> : 'Verifikasi Pesanan'}
                   </button>
                 </form>
               </div>
@@ -386,14 +409,20 @@ const ClaimPortal = () => {
                 {/* Order summary header */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', paddingBottom: '1.25rem', borderBottom: '1px solid #f3f4f6' }}>
                   <div style={{ width: '48px', height: '48px', backgroundColor: '#f3f4f6', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e7eb', flexShrink: 0 }}>
-                    <img
-                      alt="Blue Denim Jacket"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      src="https://lh3.googleusercontent.com/aida-public/AB6AXuD3X_dtTrfIl2KBqQaYbv9X4zS3eNRoyOrCat8EtpPKkCBXKkhOWOAC4UvjXy8MzQwZ5EPCzeSQES6YEw30EhyC-ySG0Tik1Vx4THDawfLDtpo8j5WY6hUdusaPsqjEIrk4-cGtZxo2lsLNNKK0SmLupPlf37x6oXH4OVr-jNCBGgChIzpgjVHxwXtPcMLTs3e3MLt7dQa-OaoSX6y1lX5jQ6wbkVQisXrYCzLs0dT9hox0aWBfX_DcnO5oGFiIras-wL2DY4kVCC9M"
-                    />
+                    {orderData?.foto_katalog_url ? (
+                      <img
+                        alt={orderData?.produk || "Product"}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        src={orderData.foto_katalog_url}
+                      />
+                    ) : (
+                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span className="material-symbols-outlined text-gray-400">inventory_2</span>
+                      </div>
+                    )}
                   </div>
                   <div>
-                    <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#111827' }}>Blue Denim Jacket</h3>
+                    <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#111827' }}>{orderData?.produk || 'Produk Tidak Dikenali'}</h3>
                     <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>Pesanan: {resi}</p>
                   </div>
                   <button
@@ -476,8 +505,8 @@ const ClaimPortal = () => {
             )}
 
             {/* ─ Step 3 Card — Success ─ */}
-            {stepState === 'success' && (
-              <div className="slide-in" style={{ backgroundColor: '#fff', padding: '2.5rem 2rem', boxShadow: '0 10px 40px rgba(0,0,0,0.15)', borderRadius: '16px', textAlign: 'center' }}>
+            {(stepState === 'success' || stepState === 'exiting3') && (
+              <div className={stepState === 'exiting3' ? 'slide-out' : 'slide-in'} style={{ backgroundColor: '#fff', padding: '2.5rem 2rem', boxShadow: '0 10px 40px rgba(0,0,0,0.15)', borderRadius: '16px', textAlign: 'center' }}>
                 {/* Success Icon */}
                 <div style={{ position: 'relative', margin: '0 auto 1.5rem', width: '80px', height: '80px' }}>
                   <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(5,150,105,0.08)', borderRadius: '50%', transform: 'scale(1.5)', filter: 'blur(12px)' }} />
@@ -514,6 +543,10 @@ const ClaimPortal = () => {
                   </button>
                   <button
                     type="button"
+                    onClick={() => {
+                      setStepState('exiting3');
+                      setTimeout(() => setStepState('details'), 150);
+                    }}
                     style={{ width: '100%', padding: '0.85rem 1rem', backgroundColor: 'transparent', color: '#6b7280', fontWeight: 500, fontSize: '14px', borderRadius: '12px', border: 'none', cursor: 'pointer', transition: 'all 0.2s' }}
                   >
                     Lihat Rincian Klaim
@@ -527,6 +560,77 @@ const ClaimPortal = () => {
                     <a href="#" style={{ color: '#1a4742', fontWeight: 500, textDecoration: 'none' }}>Hubungi Support</a>
                   </p>
                 </div>
+              </div>
+            )}
+
+            {/* ─ Step 4 Card — Details ─ */}
+            {(stepState === 'details') && (
+              <div className="slide-in" style={{ backgroundColor: '#fff', padding: '2rem', boxShadow: '0 10px 40px rgba(0,0,0,0.15)', borderRadius: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid #f3f4f6' }}>
+                  <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#111827' }}>Rincian Klaim</h2>
+                  <div style={{ padding: '0.4rem 0.8rem', backgroundColor: '#fef3c7', color: '#92400e', borderRadius: '999px', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>schedule</span>
+                    Sedang Dianalisis
+                  </div>
+                </div>
+
+                {/* Order summary small */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+                  <div style={{ width: '40px', height: '40px', backgroundColor: '#f3f4f6', borderRadius: '10px', overflow: 'hidden', border: '1px solid #e5e7eb', flexShrink: 0 }}>
+                    {orderData?.foto_katalog_url ? (
+                      <img
+                        alt={orderData?.produk || "Product"}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        src={orderData.foto_katalog_url}
+                      />
+                    ) : (
+                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span className="material-symbols-outlined text-gray-400" style={{ fontSize: '20px' }}>inventory_2</span>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#111827' }}>{orderData?.produk || 'Produk'}</h3>
+                    <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>{resi} • ID: {claimId}</p>
+                  </div>
+                </div>
+
+                {/* Info List */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
+                  <div>
+                    <p style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', marginBottom: '0.25rem' }}>Deskripsi Masalah</p>
+                    <p style={{ fontSize: '14px', color: '#1f2937', backgroundColor: '#f9fafb', padding: '0.75rem', borderRadius: '8px', border: '1px solid #f3f4f6', lineHeight: 1.5 }}>
+                      {complaint}
+                    </p>
+                  </div>
+                  
+                  {(photoBase64 || videoBase64) && (
+                    <div>
+                      <p style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', marginBottom: '0.5rem' }}>Bukti Terlampir</p>
+                      <div style={{ display: 'flex', gap: '0.75rem' }}>
+                        {photoBase64 && (
+                          <div style={{ width: '60px', height: '60px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb' }}>
+                            <img src={photoBase64} alt="Bukti Foto" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          </div>
+                        )}
+                        {videoBase64 && (
+                          <div style={{ width: '60px', height: '60px', borderRadius: '8px', backgroundColor: '#1f2937', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e5e7eb' }}>
+                            <span className="material-symbols-outlined" style={{ color: '#fff' }}>play_arrow</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setStepState('success')}
+                  style={{ width: '100%', padding: '0.85rem 1rem', backgroundColor: '#f3f4f6', color: '#4b5563', fontWeight: 600, fontSize: '14px', borderRadius: '12px', border: 'none', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>arrow_back</span>
+                  Kembali ke Status
+                </button>
               </div>
             )}
 
