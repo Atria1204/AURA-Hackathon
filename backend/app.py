@@ -12,6 +12,9 @@ from firebase_admin import credentials, firestore
 import google.generativeai as genai
 from google.api_core.exceptions import ResourceExhausted
 
+import base64
+import requests
+
 # Muat variabel environment
 load_dotenv()
 
@@ -297,48 +300,56 @@ def analyze_claim():
         policy_quote = "Kebijakan standar A.U.R.A berlaku."
         
         if gemini_model:
-            # prompt = f"""
-            # Anda adalah A.U.R.A (Autonomous Understanding & Return Agent).
-            # Kebijakan toko: Cacat minor kompensasi Rp50.000, cacat mayor full refund.
-            # Keluhan customer: "{claim_data.get('teks_keluhan')}"
-            
-            # Berikan respons dalam format JSON valid dengan field:
-            # - s3_visual_inconsistency (0-3): Nilai inkonsistensi visual (0=konsisten/aman, 3=sangat mencurigakan).
-            # - s4_text_mismatch (0-2): Nilai mismatch teks dan gambar (0=sesuai, 2=tidak sesuai).
-            # - ai_analysis (string): Penjelasan analisis singkat.
-            # - policy_quote (string): Kutipan kebijakan toko yang relevan.
-            # """
-            # Jika ada integrasi foto, kirimkan part image. Di sini kita bypass parsing bas64 jika terlalu panjang/error
-            # Sebagai contoh kita kirim teks saja jika handling base64 kompleks, tapi bisa disesuaikan.
-
             prompt = f"""
             Anda adalah A.U.R.A (Autonomous Understanding & Return Agent).
-            Tugas Anda adalah memvalidasi klaim retur pelanggan dengan membandingkan teks keluhan dan bukti visual.
-
-            Data Kasus:
-            - Kategori Produk: {claim_data.get('category')}
-            - Keluhan Customer: "{claim_data.get('teks_keluhan')}"
-
-            Instruksi Analisis Visual:
-            1. Jika foto bukti tidak jelas atau gelap, berikan skor S3 tinggi.
-            2. Jika kerusakan yang dikeluhkan (teks) tidak terlihat di foto, berikan skor S4 tinggi.
-            3. Berikan rekomendasi singkat dan tegas: apakah klaim ini layak diterima (full refund / partial) atau ditolak.
-
-            Kebijakan Toko:
-            - Cacat minor (noda kecil, benang keluar): Kompensasi Rp50.000 (Partial Refund).
-            - Cacat mayor (robek besar, sol lepas, salah barang): Full Refund.
-            - Tidak ada cacat yang terlihat di foto: Tolak klaim.
-
-            Format JSON Output Wajib:
+            Tugas Anda memvalidasi klaim dengan membandingkan teks dan DUA GAMBAR berikut.
+            
+            Klaim Produk: {order.get('produk', 'Tidak diketahui')}
+            Keluhan customer: "{claim_data.get('teks_keluhan')}"
+            
+            Instruksi Wajib:
+            1. Bandingkan "Foto Katalog Asli" dengan "Foto Bukti Pelanggan".
+            2. Jika benda di foto pelanggan BEDA BARANG dengan katalog, S4 = 2.
+            3. Jika kerusakan tidak terlihat sama sekali di foto, S4 = 2.
+            4. Tulis analisis SINGKAT, PADAT, MAKSIMAL 3-4 KALIMAT. JANGAN bertele-tele.
+            
+            Format Output JSON Wajib:
             {{
-            "s3_visual_inconsistency": [0-3],
-            "s4_text_mismatch": [0-2],
-            "ai_analysis": "[Analisis tajam maksimal 2 kalimat berdasarkan foto]",
-            "policy_quote": "[Kutipan aturan toko yang paling sesuai]"
+              "s3_visual_inconsistency": 0,
+              "s4_text_mismatch": 0,
+              "ai_analysis": "[Tulis 1 kalimat tegas. Contoh: 'Beda barang. Foto yang diunggah sepatu, bukan jaket. Tolak klaim.' ATAU 'Robekan sesuai dengan keluhan di area punggung. Valid.']",
+              "policy_quote": "[Kutipan pendek kebijakan toko]"
             }}
             """
             
-            response = gemini_model.generate_content(prompt)
+            # === BUKA MATA GEMINI (Siapkan Prompt + Gambar) ===
+            gemini_inputs = [prompt]
+            
+            # 1. Masukkan Foto Katalog (Download dari URL)
+            katalog_url = order.get("foto_katalog_url", "")
+            if katalog_url:
+                try:
+                    resp = requests.get(katalog_url, timeout=5)
+                    if resp.status_code == 200:
+                        gemini_inputs.append("Ini Foto Katalog Asli:")
+                        gemini_inputs.append({"mime_type": resp.headers.get('Content-Type', 'image/jpeg'), "data": resp.content})
+                except Exception as e:
+                    print(f"Gagal narik katalog: {e}")
+
+            # 2. Masukkan Foto Bukti Pelanggan (Decode Base64 dari frontend)
+            foto_b64 = claim_data.get("foto_base64", "")
+            if foto_b64 and "," in foto_b64:
+                try:
+                    header, encoded = foto_b64.split(",", 1)
+                    mime_type = header.split(";")[0].split(":")[1]
+                    gemini_inputs.append("Ini Foto Bukti dari Pelanggan:")
+                    gemini_inputs.append({"mime_type": mime_type, "data": base64.b64decode(encoded)})
+                except Exception as e:
+                    print(f"Gagal decode base64: {e}")
+
+            # 3. Eksekusi Gemini dengan Teks + Gambar!
+            response = gemini_model.generate_content(gemini_inputs)
+            
             # Parsing JSON dari response
             resp_text = response.text
             # Ekstrak JSON jika dibungkus markdown
