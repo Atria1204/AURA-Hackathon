@@ -1,4 +1,4 @@
-# 🛡️ A.U.R.A (Autonomous Understanding & Return Agent)
+# 🛡️ **A.U.R.A (Autonomous Understanding & Return Agent)**
 ### *Policy-Augmented Generation (PAG) for Multimodal Automated Return & Fraud Detection*
 
 A.U.R.A adalah solusi sistem manajemen klaim dan retur (*Return & Claim Management*) berbasis Agen Inteligensi Multimodal AI yang dikembangkan untuk **AURA Hackathon 2026**. Sistem ini dirancang untuk mengotomatisasi proses validasi keluhan pelanggan secara *real-time*, menekan angka kerugian akibat penipuan retur (*return fraud*), serta membantu pengambil kebijakan (admin) lewat standarisasi keputusan berbasis data yang objektif dan terukur.
