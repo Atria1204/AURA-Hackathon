@@ -9,12 +9,18 @@ os.environ["MOCK_DB"] = "false"
 
 # Setup credentials
 try:
-    cred = credentials.ApplicationDefault()
+    sa_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "")
+    if sa_path and os.path.exists(sa_path):
+        cred = credentials.Certificate(sa_path)
+        print(f"Menggunakan service account: {sa_path}")
+    else:
+        cred = credentials.ApplicationDefault()
+        print("Menggunakan Application Default Credentials.")
     firebase_admin.initialize_app(cred)
     db = firestore.client()
-    print("Berhasil terhubung ke Firestore!")
+    print("[OK] Berhasil terhubung ke Firestore!")
 except Exception as e:
-    print(f"Error menghubungkan ke Firestore. Pastikan GOOGLE_APPLICATION_CREDENTIALS sudah diset dengan benar.\nError: {e}")
+    print(f"[ERROR] Error menghubungkan ke Firestore.\nError: {e}")
     exit(1)
 
 # --- Data Orders ---

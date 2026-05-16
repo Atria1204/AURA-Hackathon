@@ -12,29 +12,61 @@ const IntelligenceReportModal = ({ claim: initialClaim, onClose }) => {
     setClaim(initialClaim);
   }, [initialClaim]);
 
-  // useEffect(() => {
-  //   if (claim.score === 0 && claim.status_klaim === 'PENDING_REVIEW' && !isAnalyzing) {
-  //     const analyzeClaim = async () => {
-  //       setIsAnalyzing(true);
-  //       try {
-  //         const response = await fetch('http://127.0.0.1:8080/api/analyze_claim', {
-  //           method: 'POST',
-  //           headers: { 'Content-Type': 'application/json' },
-  //           body: JSON.stringify({ claim_id: claim.id })
-  //         });
-  //         const result = await response.json();
-  //         if (response.ok && result.status === 'success') {
-  //           setClaim(result.data);
-  //         }
-  //       } catch (error) {
-  //         console.error('Failed to analyze claim:', error);
-  //       } finally {
-  //         setIsAnalyzing(false);
-  //       }
-  //     };
-  //     analyzeClaim();
-  //   }
-  // }, [claim.id, claim.score, claim.status_klaim]);
+  // Auto-analyze + polling: jika klaim masih Pending (score=0), trigger analisis
+  // lalu poll backend tiap 3 detik hingga hasil analisis masuk
+  useEffect(() => {
+    if (initialClaim.score !== 0 || initialClaim.status_klaim !== 'PENDING_REVIEW') return;
+
+    let pollInterval = null;
+    let stopped = false;
+
+    const triggerAndPoll = async () => {
+      setIsAnalyzing(true);
+      try {
+        // Trigger analisis AI (backend akan proses di background)
+        fetch('http://127.0.0.1:8080/api/analyze_claim', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ claim_id: initialClaim.id })
+        }).catch(() => {});
+
+        // Poll /api/claims setiap 3 detik sampai score berubah dari 0
+        pollInterval = setInterval(async () => {
+          if (stopped) return;
+          try {
+            const res = await fetch('http://127.0.0.1:8080/api/claims');
+            const data = await res.json();
+            const updated = (data.data || []).find(c => c.id === initialClaim.id);
+            if (updated && updated.score !== 0) {
+              setClaim(updated);
+              setIsAnalyzing(false);
+              clearInterval(pollInterval);
+            }
+          } catch (_) {}
+        }, 3000);
+
+        // Timeout setelah 60 detik
+        setTimeout(() => {
+          if (!stopped) {
+            clearInterval(pollInterval);
+            setIsAnalyzing(false);
+          }
+        }, 60000);
+
+      } catch (e) {
+        console.error('[A.U.R.A] Auto-analyze gagal:', e);
+        setIsAnalyzing(false);
+      }
+    };
+
+    triggerAndPoll();
+
+    return () => {
+      stopped = true;
+      clearInterval(pollInterval);
+    };
+  }, [initialClaim.id, initialClaim.score, initialClaim.status_klaim]);
+
 
   const handleApproveClick = () => {
     setView('exiting');
@@ -57,6 +89,18 @@ const IntelligenceReportModal = ({ claim: initialClaim, onClose }) => {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ claim_id: claim.id, status_klaim: 'APPROVED', refund_amount: refundAmount })
       });
+
+      // Kirim email konfirmasi APPROVED
+      fetch('http://127.0.0.1:8080/api/send_confirmation', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to_email: claim.email || '',
+          claim_id: claim.id,
+          status: 'APPROVED',
+          produk: claim.product || claim.produk || '',
+        })
+      }).catch(err => console.warn('[A.U.R.A] Email APPROVED gagal:', err));
+
       setView('exiting');
       setTimeout(() => {
         setView('success');
@@ -90,6 +134,19 @@ const IntelligenceReportModal = ({ claim: initialClaim, onClose }) => {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ claim_id: claim.id, status_klaim: 'REJECTED', reject_reason: rejectReason })
       });
+
+      // Kirim email konfirmasi REJECTED
+      fetch('http://127.0.0.1:8080/api/send_confirmation', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to_email: claim.email || '',
+          claim_id: claim.id,
+          status: 'REJECTED',
+          produk: claim.product || claim.produk || '',
+          reason: rejectReason,
+        })
+      }).catch(err => console.warn('[A.U.R.A] Email REJECTED gagal:', err));
+
       setView('exiting');
       setTimeout(() => {
         setView('rejected');
@@ -430,12 +487,19 @@ const IntelligenceReportModal = ({ claim: initialClaim, onClose }) => {
 
                     {/* Unboxing Video */}
                     <div className="flex flex-col gap-3">
-                      <div className="relative rounded-xl overflow-hidden bg-black aspect-square border border-slate-200/60 flex items-center justify-center group cursor-pointer">
-                        {claim.video_base64 ? (
+                      <div className="relative rounded-xl overflow-hidden bg-black aspect-square border border-slate-200/60 flex items-center justify-center group">
+                        {claim.video_url ? (
                           <video
-                            src={claim.video_base64}
+                            src={claim.video_url}
                             controls
+                            controlsList="nodownload"
+                            playsInline
+                            preload="metadata"
                             className="w-full h-full object-contain"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.nextSibling && (e.target.nextSibling.style.display = 'flex');
+                            }}
                           />
                         ) : (
                           <>
@@ -443,10 +507,22 @@ const IntelligenceReportModal = ({ claim: initialClaim, onClose }) => {
                             <div className="absolute bottom-3 right-3 bg-black/80 text-white text-label-sm px-2 py-1 rounded-lg">No Video</div>
                           </>
                         )}
+                        {claim.video_url && (
+                          <div className="absolute top-2 left-2 bg-black/70 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 pointer-events-none">
+                            <span className="material-symbols-outlined text-[12px]">cloud_done</span>
+                            Supabase
+                          </div>
+                        )}
                       </div>
                       <div className="flex justify-between items-center px-1">
                         <span className="text-label-md text-on-background">Unboxing Video</span>
-                        <span className="text-body-sm text-outline">{claim.date}, {claim.time}</span>
+                        <span className="text-body-sm text-outline">
+                          {claim.video_url
+                            ? <a href={claim.video_url} target="_blank" rel="noopener noreferrer" className="text-[#1a4742] hover:underline flex items-center gap-0.5">
+                                <span className="material-symbols-outlined text-[13px]">open_in_new</span>Buka
+                              </a>
+                            : 'Tidak ada'}
+                        </span>
                       </div>
                     </div>
 

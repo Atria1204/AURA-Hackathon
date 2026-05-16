@@ -32,7 +32,7 @@ const AdminDashboard = () => {
         setClaims(result.data);
       }
     } catch (error) {
-      console.error('Failed to fetch claims:', error);
+      // Failed to fetch claims
     } finally {
       setIsLoading(false);
     }

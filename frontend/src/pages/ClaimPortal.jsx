@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
+import { supabase } from '../lib/supabaseClient';
 
 /* ─── Swipe animation styles injected once ─────────────────────────── */
 const ANIM_CSS = `
@@ -118,6 +119,7 @@ const FilePreview = ({ preview, fileName, label, isVideo, onRemove }) => (
 const ClaimPortal = () => {
   const [resi, setResi] = useState('');
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   /* 'idle' | 'exiting' | 'entered' | 'exiting2' | 'success' | 'exiting3' | 'details' */
   const [stepState, setStepState] = useState('idle');
   const [claimId, setClaimId] = useState('');
@@ -129,10 +131,12 @@ const ClaimPortal = () => {
   const [isPhotoDragging, setIsPhotoDragging] = useState(false);
   const [isPhotoLoading, setIsPhotoLoading] = useState(false);
 
+  const [videoFile, setVideoFile] = useState(null);
   const [videoBase64, setVideoBase64] = useState(null);
   const [videoFileName, setVideoFileName] = useState('');
   const [isVideoDragging, setIsVideoDragging] = useState(false);
   const [isVideoLoading, setIsVideoLoading] = useState(false);
+  const [videoUploadProgress, setVideoUploadProgress] = useState(0);
 
   const [isLoading, setIsLoading] = useState(false);
   const [alertInfo, setAlertInfo] = useState(null);
@@ -142,7 +146,7 @@ const ClaimPortal = () => {
 
   const isVerified = stepState === 'entered' || stepState === 'exiting2' || stepState === 'success';
   const isCompleted = stepState === 'success';
-  const isFormValid = resi.trim() !== '' && phone.trim().length === 4;
+  const isFormValid = resi.trim() !== '' && phone.trim().length === 4 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   /* ── Verify with swipe animation ── */
   const handleVerify = async () => {
@@ -155,8 +159,8 @@ const ClaimPortal = () => {
       const result = await response.json();
       if (response.ok && result.status === 'success') {
         setOrderData(result.data);
-        setStepState('exiting');          // trigger slide-out
-        setTimeout(() => setStepState('entered'), 150); // after anim, show step 2
+        setStepState('exiting');
+        setTimeout(() => setStepState('entered'), 150);
       } else {
         setAlertInfo({ type: 'error', message: result.message || 'Verifikasi gagal.' });
       }
@@ -184,17 +188,18 @@ const ClaimPortal = () => {
   };
   const processVideo = (file) => {
     if (!file) return;
-    if (file.size > 1024 * 1024) {
-      setAlertInfo({ type: 'error', message: 'Ukuran video maksimal 1MB (Limit Firestore).' }); return;
+    const MAX_VIDEO_MB = 10;
+    if (file.size > MAX_VIDEO_MB * 1024 * 1024) {
+      setAlertInfo({ type: 'error', message: `Ukuran video maksimal ${MAX_VIDEO_MB}MB.` }); return;
     }
-    if (!file.type.match('video/mp4')) {
-      setAlertInfo({ type: 'error', message: 'Hanya MP4.' }); return;
+    if (!file.type.match('video/mp4') && !file.type.match('video/webm') && !file.type.match('video/quicktime')) {
+      setAlertInfo({ type: 'error', message: 'Format video harus MP4, WebM, atau MOV.' }); return;
     }
-    setVideoFileName(file.name); setIsVideoLoading(true);
-    const r = new FileReader();
-    r.onloadend = () => { setVideoBase64(r.result); setAlertInfo(null); setIsVideoLoading(false); };
-    r.onerror = () => { setAlertInfo({ type: 'error', message: 'Gagal membaca video.' }); setIsVideoLoading(false); };
-    r.readAsDataURL(file);
+    setVideoFile(file);
+    setVideoFileName(file.name);
+    setVideoBase64('placeholder');
+    setAlertInfo(null);
+    setVideoUploadProgress(0);
   };
 
   const handlePhotoDragOver = useCallback((e) => { e.preventDefault(); setIsPhotoDragging(true); }, []);
@@ -207,13 +212,39 @@ const ClaimPortal = () => {
   const handleVideoDragLeave = useCallback((e) => { e.preventDefault(); setIsVideoDragging(false); }, []);
   const handleVideoDrop = useCallback((e) => { e.preventDefault(); setIsVideoDragging(false); if (e.dataTransfer.files?.[0]) processVideo(e.dataTransfer.files[0]); }, []);
   const handleVideoChange = (e) => { if (e.target.files?.[0]) processVideo(e.target.files[0]); };
-  const removeVideo = () => { setVideoBase64(null); setVideoFileName(''); if (videoInputRef.current) videoInputRef.current.value = ''; };
+  const removeVideo = () => { setVideoFile(null); setVideoBase64(null); setVideoFileName(''); setVideoUploadProgress(0); if (videoInputRef.current) videoInputRef.current.value = ''; };
 
   /* ── Reset ── */
   const resetAll = () => {
     setComplaint(''); removePhoto(); removeVideo();
-    setStepState('idle'); setResi(''); setPhone('');
+    setStepState('idle'); setResi(''); setPhone(''); setEmail('');
     setClaimId(''); setAlertInfo(null); setOrderData(null);
+    setVideoUploadProgress(0);
+  };
+
+  /* ── Upload video ke Supabase Storage ── */
+  const uploadVideoToSupabase = async (file, claimIdPrefix) => {
+    const BUCKET = import.meta.env.VITE_SUPABASE_BUCKET || 'claim-videos';
+    const ext = file.name.split('.').pop();
+    const filePath = `${claimIdPrefix}_${Date.now()}.${ext}`;
+
+    setVideoUploadProgress(10);
+    const { data, error } = await supabase.storage
+      .from(BUCKET)
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: file.type,
+      });
+
+    if (error) {
+      throw new Error(`Gagal upload video: ${error.message}`);
+    }
+
+    // Ambil public URL
+    const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(filePath);
+    setVideoUploadProgress(100);
+    return urlData?.publicUrl || '';
   };
 
   /* ── Submit ── */
@@ -222,36 +253,62 @@ const ClaimPortal = () => {
       setAlertInfo({ type: 'error', message: 'Lengkapi keluhan dan foto bukti.' }); return;
     }
     setIsLoading(true); setAlertInfo(null);
-    const payload = { nomor_resi: resi, teks_keluhan: complaint, foto_base64: photoBase64, video_base64: videoBase64 };
+
     try {
+      let videoUrl = '';
+      if (videoFile) {
+        setAlertInfo({ type: 'info', message: 'Mengupload video ke storage...' });
+        const tempId = `CLM-${resi}-${Date.now()}`;
+        videoUrl = await uploadVideoToSupabase(videoFile, tempId);
+        setAlertInfo(null);
+      }
+
+      const payload = {
+        nomor_resi: resi,
+        teks_keluhan: complaint,
+        foto_base64: photoBase64,
+        video_url: videoUrl,
+        email_pelanggan: email,
+      };
+
       const response = await fetch('http://127.0.0.1:8080/api/submit_claim', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
       });
       const result = await response.json();
+
       if (response.status === 429) {
         setAlertInfo({ type: 'error', message: 'Rate limit (429). Coba lagi.' });
-
       } else if (response.ok && result.status === 'success') {
         const newClaimId = result.data.claim_id;
         setClaimId(newClaimId);
 
-        // BARIS BARU: Suruh AI Gemini mikir di background
         fetch('http://127.0.0.1:8080/api/analyze_claim', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ claim_id: newClaimId })
-        }).catch(err => console.error("Gagal manggil AI:", err));
+          body: JSON.stringify({ claim_id: newClaimId, foto_base64: photoBase64 })
+        }).catch(() => {});
+
+        fetch('http://127.0.0.1:8080/api/send_confirmation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to_email: email,
+            claim_id: newClaimId,
+            status: 'SUBMITTED',
+            produk: orderData?.produk || 'Produk',
+          })
+        }).catch(() => {});
 
         setStepState('exiting2');
         setTimeout(() => setStepState('success'), 150);
-      }
-
-      else {
+      } else {
         setAlertInfo({ type: 'error', message: result.message || `Error ${response.status}` });
       }
     } catch (error) {
-      setAlertInfo({ type: 'error', message: 'Gagal mengirim klaim.' });
-    } finally { setIsLoading(false); }
+      setAlertInfo({ type: 'error', message: error.message || 'Gagal mengirim klaim.' });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   /* ─────────────────────────────────────────────────────────────────── */
@@ -389,6 +446,16 @@ const ClaimPortal = () => {
                     />
                   </div>
                   <div>
+                    <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#1f2937', marginBottom: '0.5rem' }} htmlFor="emailPelanggan">
+                      Email Penerima Konfirmasi
+                    </label>
+                    <input
+                      id="emailPelanggan" type="email" placeholder="contoh@email.com"
+                      value={email} onChange={(e) => setEmail(e.target.value)}
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div>
                     <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#1f2937', marginBottom: '0.5rem' }} htmlFor="digitHp">
                       4 Digit Terakhir Nomor HP
                     </label>
@@ -492,8 +559,15 @@ const ClaimPortal = () => {
                         <span className="material-symbols-outlined animate-spin" style={{ color: '#1a4742' }}>sync</span>
                       </div>
                       : !videoBase64
-                        ? <DropZone isDragging={isVideoDragging} onDragOver={handleVideoDragOver} onDragLeave={handleVideoDragLeave} onDrop={handleVideoDrop} inputRef={videoInputRef} onChange={handleVideoChange} accept="video/mp4" isVideo={true} />
-                        : <FilePreview preview={null} fileName={videoFileName} label="Video siap dikirim" isVideo={true} onRemove={removeVideo} />
+                        ? <DropZone isDragging={isVideoDragging} onDragOver={handleVideoDragOver} onDragLeave={handleVideoDragLeave} onDrop={handleVideoDrop} inputRef={videoInputRef} onChange={handleVideoChange} accept="video/mp4,video/webm,video/quicktime" isVideo={true} />
+                        : <>
+                            <FilePreview preview={null} fileName={videoFileName} label={`Video siap diupload ke Supabase (${(videoFile?.size / (1024*1024)).toFixed(1)} MB)`} isVideo={true} onRemove={removeVideo} />
+                            {videoUploadProgress > 0 && videoUploadProgress < 100 && (
+                              <div style={{ marginTop: '0.5rem', backgroundColor: '#e5e7eb', borderRadius: '999px', height: '4px', overflow: 'hidden' }}>
+                                <div style={{ height: '100%', width: `${videoUploadProgress}%`, backgroundColor: '#1a4742', transition: 'width 0.3s ease' }} />
+                              </div>
+                            )}
+                          </>
                     }
                   </div>
 
