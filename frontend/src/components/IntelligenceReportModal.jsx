@@ -12,29 +12,29 @@ const IntelligenceReportModal = ({ claim: initialClaim, onClose }) => {
     setClaim(initialClaim);
   }, [initialClaim]);
 
-  useEffect(() => {
-    if (claim.score === 0 && claim.status_klaim === 'PENDING_REVIEW' && !isAnalyzing) {
-      const analyzeClaim = async () => {
-        setIsAnalyzing(true);
-        try {
-          const response = await fetch('http://127.0.0.1:8080/api/analyze_claim', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ claim_id: claim.id })
-          });
-          const result = await response.json();
-          if (response.ok && result.status === 'success') {
-            setClaim(result.data);
-          }
-        } catch (error) {
-          console.error('Failed to analyze claim:', error);
-        } finally {
-          setIsAnalyzing(false);
-        }
-      };
-      analyzeClaim();
-    }
-  }, [claim.id, claim.score, claim.status_klaim]);
+  // useEffect(() => {
+  //   if (claim.score === 0 && claim.status_klaim === 'PENDING_REVIEW' && !isAnalyzing) {
+  //     const analyzeClaim = async () => {
+  //       setIsAnalyzing(true);
+  //       try {
+  //         const response = await fetch('http://127.0.0.1:8080/api/analyze_claim', {
+  //           method: 'POST',
+  //           headers: { 'Content-Type': 'application/json' },
+  //           body: JSON.stringify({ claim_id: claim.id })
+  //         });
+  //         const result = await response.json();
+  //         if (response.ok && result.status === 'success') {
+  //           setClaim(result.data);
+  //         }
+  //       } catch (error) {
+  //         console.error('Failed to analyze claim:', error);
+  //       } finally {
+  //         setIsAnalyzing(false);
+  //       }
+  //     };
+  //     analyzeClaim();
+  //   }
+  // }, [claim.id, claim.score, claim.status_klaim]);
 
   const handleApproveClick = () => {
     setView('exiting');
@@ -131,9 +131,9 @@ const IntelligenceReportModal = ({ claim: initialClaim, onClose }) => {
       >
 
         {view === 'success' && (
-          <div 
+          <div
             className="flex-1 overflow-y-auto scroll-smooth overscroll-contain p-8 sm:p-12 relative bg-transparent flex flex-col items-center justify-center"
-            style={{ 
+            style={{
               animation: 'swipeIn 0.15s cubic-bezier(0.4, 0, 0.2, 1) forwards',
               willChange: 'transform, opacity'
             }}
@@ -146,24 +146,24 @@ const IntelligenceReportModal = ({ claim: initialClaim, onClose }) => {
             `}</style>
             {/* Ambient Background Glow */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-emerald-300/15 rounded-full blur-[60px] pointer-events-none" />
-            
+
             <div className="relative z-10 flex flex-col items-center text-center my-auto w-full max-w-full" style={{ width: '450px' }}>
               {/* Checkmark Icon */}
               <div className="w-24 h-24 bg-gradient-to-br from-emerald-100 to-emerald-50 rounded-full flex items-center justify-center mb-8 shadow-xl shadow-emerald-500/10 border border-white shrink-0">
                 <span className="material-symbols-outlined text-emerald-600 text-[48px]">task_alt</span>
               </div>
-              
+
               {/* Typography */}
               <h2 className="text-[32px] font-bold text-slate-800 mb-4 tracking-tight leading-tight w-full">Klaim Berhasil Disetujui</h2>
               <p className="text-body-lg text-slate-500 mb-10 w-full leading-relaxed">
                 Pengembalian dana untuk klaim <span className="font-bold text-slate-800">{claim.resi}</span> sedang diproses dan akan diteruskan ke sistem.
               </p>
-              
+
               {/* Receipt Summary Card */}
               <div className="w-full bg-white/80 backdrop-blur-md rounded-2xl p-6 shadow-sm border border-slate-200/50 mb-10 flex flex-col gap-4 text-left relative overflow-hidden">
                 {/* Decorative edge line */}
                 <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-400" />
-                
+
                 <div className="flex justify-between items-center">
                   <span className="text-body-sm text-slate-500 shrink-0">Status</span>
                   <span className="text-[12px] font-bold tracking-wide text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100/50 uppercase whitespace-nowrap">Refund Diproses</span>
@@ -193,9 +193,9 @@ const IntelligenceReportModal = ({ claim: initialClaim, onClose }) => {
         )}
 
         {view === 'refund_prompt' && (
-          <div 
+          <div
             className="flex-1 overflow-y-auto scroll-smooth overscroll-contain p-8 sm:p-12 relative bg-transparent flex flex-col items-center justify-center"
-            style={{ 
+            style={{
               animation: 'swipeIn 0.15s cubic-bezier(0.4, 0, 0.2, 1) forwards',
               willChange: 'transform, opacity'
             }}
@@ -210,12 +210,12 @@ const IntelligenceReportModal = ({ claim: initialClaim, onClose }) => {
                   <p className="text-body-md text-slate-500 mt-1">Klaim <span className="font-bold text-slate-700">{claim.resi}</span> akan disetujui untuk refund.</p>
                 </div>
               </div>
-              
+
               <div className="mb-8 w-full">
                 <label className="block text-label-md text-slate-700 mb-3">Nominal Refund (Rp)</label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold">Rp</span>
-                  <input 
+                  <input
                     type="number"
                     value={refundAmount}
                     onChange={(e) => setRefundAmount(e.target.value)}
@@ -250,9 +250,9 @@ const IntelligenceReportModal = ({ claim: initialClaim, onClose }) => {
         )}
 
         {view === 'reject_prompt' && (
-          <div 
+          <div
             className="flex-1 overflow-y-auto scroll-smooth overscroll-contain p-8 sm:p-12 relative bg-transparent flex flex-col items-center justify-center"
-            style={{ 
+            style={{
               animation: 'swipeIn 0.15s cubic-bezier(0.4, 0, 0.2, 1) forwards',
               willChange: 'transform, opacity'
             }}
@@ -267,10 +267,10 @@ const IntelligenceReportModal = ({ claim: initialClaim, onClose }) => {
                   <p className="text-body-md text-slate-500 mt-1">Klaim <span className="font-bold text-slate-700">{claim.resi}</span> akan ditutup permanen.</p>
                 </div>
               </div>
-              
+
               <div className="mb-8 w-full">
                 <label className="block text-label-md text-slate-700 mb-3">Alasan Penolakan (Wajib)</label>
-                <textarea 
+                <textarea
                   value={rejectReason}
                   onChange={(e) => setRejectReason(e.target.value)}
                   placeholder="Contoh: Bukti video unboxing tidak lengkap, kerusakan tidak sesuai kebijakan..."
@@ -299,33 +299,33 @@ const IntelligenceReportModal = ({ claim: initialClaim, onClose }) => {
         )}
 
         {view === 'rejected' && (
-          <div 
+          <div
             className="flex-1 overflow-y-auto scroll-smooth overscroll-contain p-8 sm:p-12 relative bg-transparent flex flex-col items-center justify-center"
-            style={{ 
+            style={{
               animation: 'swipeIn 0.15s cubic-bezier(0.4, 0, 0.2, 1) forwards',
               willChange: 'transform, opacity'
             }}
           >
             {/* Ambient Background Glow */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-red-300/15 rounded-full blur-[60px] pointer-events-none" />
-            
+
             <div className="relative z-10 flex flex-col items-center text-center my-auto w-full max-w-full" style={{ width: '450px' }}>
               {/* Icon */}
               <div className="w-24 h-24 bg-gradient-to-br from-red-100 to-red-50 rounded-full flex items-center justify-center mb-8 shadow-xl shadow-red-500/10 border border-white shrink-0">
                 <span className="material-symbols-outlined text-red-600 text-[48px]">block</span>
               </div>
-              
+
               {/* Typography */}
               <h2 className="text-[32px] font-bold text-slate-800 mb-4 tracking-tight leading-tight w-full">Klaim Ditolak</h2>
               <p className="text-body-lg text-slate-500 mb-10 w-full leading-relaxed">
                 Permintaan pengembalian dana untuk klaim <span className="font-bold text-slate-800">{claim.resi}</span> tidak dapat disetujui karena tidak memenuhi syarat kebijakan.
               </p>
-              
+
               {/* Receipt Summary Card */}
               <div className="w-full bg-white/80 backdrop-blur-md rounded-2xl p-6 shadow-sm border border-slate-200/50 mb-10 flex flex-col gap-4 text-left relative overflow-hidden">
                 {/* Decorative edge line */}
                 <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-400" />
-                
+
                 <div className="flex justify-between items-center">
                   <span className="text-body-sm text-slate-500 shrink-0">Status</span>
                   <span className="text-[12px] font-bold tracking-wide text-red-700 bg-red-50 px-3 py-1 rounded-full border border-red-100/50 uppercase whitespace-nowrap">Ditolak</span>
@@ -357,232 +357,232 @@ const IntelligenceReportModal = ({ claim: initialClaim, onClose }) => {
             </div>
           </div>
         )}
-        
+
         {(view === 'detail' || view === 'exiting') && (
-          <div 
+          <div
             className={`flex-1 overflow-y-auto scroll-smooth overscroll-contain p-8 transition-[transform,opacity] duration-100 ease-out transform-gpu ${view === 'exiting' ? '-translate-x-8 opacity-0' : 'translate-x-0 opacity-100'}`}
             style={{ willChange: 'transform, opacity' }}
           >
 
-          <div className="flex items-center justify-between mb-8 bg-white p-6 border border-[#cbd5e1]/50 rounded-2xl shadow-sm">
-            <div>
-              <h1 className="text-h1 text-[#0f172a]">Claim Detail Panel</h1>
-              <p className="text-body-md text-[#475569] mt-2 flex items-center gap-2">
-                Claim ID: {claim.resi} • {claim.product} 
-                {isAnalyzing && (
-                  <span className="flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-1 rounded-md text-xs font-medium">
-                    <span className="material-symbols-outlined animate-spin text-[14px]">sync</span> AI Analyzing...
-                  </span>
-                )}
-              </p>
-            </div>
-            <button
-              onClick={onClose}
-              className="flex items-center gap-2 px-4 py-2 border border-[#cbd5e1] hover:bg-[#f1f5f9] text-[#0f172a] transition-colors duration-200 text-label-md rounded-xl"
-            >
-              <span className="material-symbols-outlined text-[20px]">close</span>
-              Close Panel
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-            {/* Left Col: Visual Evidence (2/3) */}
-            <div className="lg:col-span-2 flex flex-col gap-8">
-
-              {/* Image Comparison */}
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/60">
-                <h3 className="text-h3 text-on-background mb-6 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[#1a3636]">image_search</span>
-                  Visual Evidence
-                </h3>
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-
-                  {/* Customer Photo */}
-                  <div className="flex flex-col gap-3">
-                    <div className="relative group rounded-xl overflow-hidden bg-slate-100 aspect-square border border-slate-200/60">
-                      <img
-                        alt="Customer uploaded photo"
-                        className="w-full h-full object-cover"
-                        src={claim.image || "https://lh3.googleusercontent.com/aida-public/AB6AXuC0H4P2MD_-CKMW9_X2SbZloOsOvqzdeJVHOAIHfnC3Xs6oNiJGiqOw4143FEdQKi0sLHpSCHApSaF-zqcKL87jD5IPq4HC1Ys7ShD5TBnS_sBlgGmP6xcvW9c-x0Jq_iABaSqmLywaOje1N4z_055dFFXaDfJxmZv5sK53FQ980MIgMrOPE3EDuBHzAL3lgeSgcsQykgLrseakP6nBw2ORpv_DgljG6q2riTWZPgxbFizXgKHT_8vh7I1PwZtQ6fGmkC3sGA6mE7TB"}
-                      />
-                    </div>
-                    <div className="flex justify-between items-center px-1">
-                      <span className="text-label-md text-on-background">Customer Upload</span>
-                      <span className="text-body-sm text-outline">{claim.date}, {claim.time}</span>
-                    </div>
-                  </div>
-
-                  {/* Catalog Photo */}
-                  <div className="flex flex-col gap-3">
-                    <div className="relative rounded-xl overflow-hidden bg-slate-100 aspect-square border border-slate-200/60">
-                      <img
-                        alt="Catalog reference photo"
-                        className="w-full h-full object-cover"
-                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuCjrfxsiea34M4FhzGGbtTytniuozxDRP6Js4zpkreRf46dHPqpHecZrHe5HAP2JbY6GdzSQEfc9f7G_wR92OwAOdoz_T-tkjkVoDMRjGR943Pn1Ybd3FigNh1SlyrbzHqBjzsNWPu5DscbDDyyIN-AdMNIJFY_9MnqSHsf0if7KUfdD6JcjW-s5VLLSIebyu7-3amOA8YLX-7rSb3nlwTwiVHiSXLjBoLqdhX_ysbWLJWF634f1SHiWTwlD3k3ZPLLyDKdJ3kSYCB8"
-                      />
-                    </div>
-                    <div className="flex justify-between items-center px-1">
-                      <span className="text-label-md text-on-background">Catalog Reference</span>
-                      <span className="text-body-sm text-outline">SKU: SNK-RD-042</span>
-                    </div>
-                  </div>
-
-                  {/* Unboxing Video */}
-                  <div className="flex flex-col gap-3">
-                    <div className="relative rounded-xl overflow-hidden bg-black aspect-square border border-slate-200/60 flex items-center justify-center group cursor-pointer">
-                      {claim.video_base64 ? (
-                        <video 
-                          src={claim.video_base64} 
-                          controls 
-                          className="w-full h-full object-contain"
-                        />
-                      ) : (
-                        <>
-                          <span className="material-symbols-outlined text-white text-[64px] opacity-80 group-hover:opacity-100 transition-opacity">videocam_off</span>
-                          <div className="absolute bottom-3 right-3 bg-black/80 text-white text-label-sm px-2 py-1 rounded-lg">No Video</div>
-                        </>
-                      )}
-                    </div>
-                    <div className="flex justify-between items-center px-1">
-                      <span className="text-label-md text-on-background">Unboxing Video</span>
-                      <span className="text-body-sm text-outline">{claim.date}, {claim.time}</span>
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-
-              {/* Customer Complaint */}
-              <div className="bg-red-50 rounded-2xl p-6 shadow-sm border-l-4 border-red-500 relative overflow-hidden">
-                <h3 className="text-h3 text-red-900 mb-4 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-red-600">record_voice_over</span>
-                  Keluhan Pelanggan
-                </h3>
-                <div className="flex gap-4 items-start">
-                  <div className="bg-white p-3 rounded-xl shadow-sm border border-red-100/50 flex-shrink-0">
-                    <span className="material-symbols-outlined text-red-500 text-[24px]">format_quote</span>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-body-lg text-slate-800 bg-white p-4 rounded-xl border border-red-100/50 shadow-sm leading-relaxed">
-                      "{claim.teks_keluhan || "Tidak ada keluhan tertulis."}"
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* AI Recommendation — bg-surface-dim with left border matching reference */}
-              <div className="bg-[#f1f5f9] rounded-2xl p-6 shadow-sm border-l-4 border-[#1a3a3a] relative overflow-hidden">
-                <h3 className="text-h3 text-[#0f172a] mb-4 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[#1a3a3a]">auto_awesome</span>
-                  A.U.R.A Recommendation
-                </h3>
-                <div className="flex gap-4 items-start">
-                  <div className="bg-white p-3 rounded-xl shadow-sm border border-[#cbd5e1]/30">
-                    <span className="material-symbols-outlined text-[#1a3a3a] text-[24px]">insights</span>
-                  </div>
-                  <div>
-                    <p className="text-body-lg text-[#0f172a]">
-                      <span className="font-bold text-[#1a3a3a]">{claim.ai_analysis || "Membutuhkan analisa lebih lanjut."}</span>
-                    </p>
-                    <p className="text-body-sm text-[#475569] mt-2">
-                      Policy: {claim.policy_quote || "Kebijakan standar A.U.R.A berlaku."}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Col: Intelligence Report (1/3) */}
-            <div className="flex flex-col gap-8">
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/60 flex flex-col h-full">
-                <div className="flex items-center justify-between mb-6 pb-6 border-b border-slate-200/60">
-                  <h3 className="text-h3 text-on-background flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[#1a3636]">policy</span>
-                    Intelligence Report
-                  </h3>
-                </div>
-
-                {/* Risk Score — bg-surface-dim matching reference */}
-                <div className="flex flex-col items-center justify-center py-6 mb-8 bg-[#f1f5f9] rounded-xl border border-[#cbd5e1]/30">
-                  <span className="text-label-sm text-[#475569] uppercase tracking-wider mb-2">Overall Risk Score</span>
-                  {isAnalyzing ? (
-                    <div className="flex flex-col items-center text-amber-600">
-                      <span className="material-symbols-outlined animate-spin text-4xl mb-2">autorenew</span>
-                      <span className="text-sm font-medium">Menghitung...</span>
-                    </div>
-                  ) : (
-                    <>
-                      <div className={`text-[48px] leading-none font-bold ${riskColor} flex items-baseline gap-1`}>
-                        {riskScore}<span className="text-[24px] text-[#94a3b8] font-medium">/10</span>
-                      </div>
-                      <span className={`text-label-md px-3 py-1 rounded-lg mt-3 border ${riskBg}`}>{riskLabel}</span>
-                    </>
+            <div className="flex items-center justify-between mb-8 bg-white p-6 border border-[#cbd5e1]/50 rounded-2xl shadow-sm">
+              <div>
+                <h1 className="text-h1 text-[#0f172a]">Claim Detail Panel</h1>
+                <p className="text-body-md text-[#475569] mt-2 flex items-center gap-2">
+                  Claim ID: {claim.resi} • {claim.product}
+                  {isAnalyzing && (
+                    <span className="flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-1 rounded-md text-xs font-medium">
+                      <span className="material-symbols-outlined animate-spin text-[14px]">sync</span> AI Analyzing...
+                    </span>
                   )}
-                </div>
+                </p>
+              </div>
+              <button
+                onClick={onClose}
+                className="flex items-center gap-2 px-4 py-2 border border-[#cbd5e1] hover:bg-[#f1f5f9] text-[#0f172a] transition-colors duration-200 text-label-md rounded-xl"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+                Close Panel
+              </button>
+            </div>
 
-                {/* Trust Signals */}
-                <div className="flex flex-col gap-5 flex-1">
-                  <span className="text-label-md text-[#0f172a] mb-1">Trust Signals Breakdown</span>
-                  {signals.map(({ label, status, width, color }) => (
-                    <div key={label} className="flex flex-col gap-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-label-sm text-[#475569]">{label}</span>
-                        <span className={`text-label-sm font-bold ${status === 'Flagged' ? 'text-[#0f172a]' : 'text-[#0f172a]'}`}>{status}</span>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+              {/* Left Col: Visual Evidence (2/3) */}
+              <div className="lg:col-span-2 flex flex-col gap-8">
+
+                {/* Image Comparison */}
+                <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/60">
+                  <h3 className="text-h3 text-on-background mb-6 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[#1a3636]">image_search</span>
+                    Visual Evidence
+                  </h3>
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+
+                    {/* Customer Photo */}
+                    <div className="flex flex-col gap-3">
+                      <div className="relative group rounded-xl overflow-hidden bg-slate-100 aspect-square border border-slate-200/60">
+                        <img
+                          alt="Customer uploaded photo"
+                          className="w-full h-full object-cover"
+                          src={claim.image || "https://lh3.googleusercontent.com/aida-public/AB6AXuC0H4P2MD_-CKMW9_X2SbZloOsOvqzdeJVHOAIHfnC3Xs6oNiJGiqOw4143FEdQKi0sLHpSCHApSaF-zqcKL87jD5IPq4HC1Ys7ShD5TBnS_sBlgGmP6xcvW9c-x0Jq_iABaSqmLywaOje1N4z_055dFFXaDfJxmZv5sK53FQ980MIgMrOPE3EDuBHzAL3lgeSgcsQykgLrseakP6nBw2ORpv_DgljG6q2riTWZPgxbFizXgKHT_8vh7I1PwZtQ6fGmkC3sGA6mE7TB"}
+                        />
                       </div>
-                      {/* bg-surface-variant for track matching reference */}
-                      <div className="h-2 w-full bg-[#e2e8f0] rounded-full overflow-hidden">
-                        <div className="h-full rounded-full transition-all duration-500" style={{ width, backgroundColor: color }} />
+                      <div className="flex justify-between items-center px-1">
+                        <span className="text-label-md text-on-background">Customer Upload</span>
+                        <span className="text-body-sm text-outline">{claim.date}, {claim.time}</span>
                       </div>
                     </div>
-                  ))}
+
+                    {/* Catalog Photo */}
+                    <div className="flex flex-col gap-3">
+                      <div className="relative rounded-xl overflow-hidden bg-slate-100 aspect-square border border-slate-200/60">
+                        <img
+                          alt="Catalog reference photo"
+                          className="w-full h-full object-cover"
+                          src={claim.foto_katalog_url || "https://images.unsplash.com/photo-1543076447-215ad9ba6923?q=80&w=600&auto=format&fit=crop"}
+                        />
+                      </div>
+                      <div className="flex justify-between items-center px-1">
+                        <span className="text-label-md text-on-background">Catalog Reference</span>
+                        <span className="text-body-sm text-outline">SKU: SNK-RD-042</span>
+                      </div>
+                    </div>
+
+                    {/* Unboxing Video */}
+                    <div className="flex flex-col gap-3">
+                      <div className="relative rounded-xl overflow-hidden bg-black aspect-square border border-slate-200/60 flex items-center justify-center group cursor-pointer">
+                        {claim.video_base64 ? (
+                          <video
+                            src={claim.video_base64}
+                            controls
+                            className="w-full h-full object-contain"
+                          />
+                        ) : (
+                          <>
+                            <span className="material-symbols-outlined text-white text-[64px] opacity-80 group-hover:opacity-100 transition-opacity">videocam_off</span>
+                            <div className="absolute bottom-3 right-3 bg-black/80 text-white text-label-sm px-2 py-1 rounded-lg">No Video</div>
+                          </>
+                        )}
+                      </div>
+                      <div className="flex justify-between items-center px-1">
+                        <span className="text-label-md text-on-background">Unboxing Video</span>
+                        <span className="text-body-sm text-outline">{claim.date}, {claim.time}</span>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+                {/* Customer Complaint */}
+                <div className="bg-red-50 rounded-2xl p-6 shadow-sm border-l-4 border-red-500 relative overflow-hidden">
+                  <h3 className="text-h3 text-red-900 mb-4 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-red-600">record_voice_over</span>
+                    Keluhan Pelanggan
+                  </h3>
+                  <div className="flex gap-4 items-start">
+                    <div className="bg-white p-3 rounded-xl shadow-sm border border-red-100/50 flex-shrink-0">
+                      <span className="material-symbols-outlined text-red-500 text-[24px]">format_quote</span>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-body-lg text-slate-800 bg-white p-4 rounded-xl border border-red-100/50 shadow-sm leading-relaxed">
+                        "{claim.teks_keluhan || "Tidak ada keluhan tertulis."}"
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* AI Recommendation — bg-surface-dim with left border matching reference */}
+                <div className="bg-[#f1f5f9] rounded-2xl p-6 shadow-sm border-l-4 border-[#1a3a3a] relative overflow-hidden">
+                  <h3 className="text-h3 text-[#0f172a] mb-4 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[#1a3a3a]">auto_awesome</span>
+                    A.U.R.A Recommendation
+                  </h3>
+                  <div className="flex gap-4 items-start">
+                    <div className="bg-white p-3 rounded-xl shadow-sm border border-[#cbd5e1]/30">
+                      <span className="material-symbols-outlined text-[#1a3a3a] text-[24px]">insights</span>
+                    </div>
+                    <div>
+                      <p className="text-body-lg text-[#0f172a]">
+                        <span className="font-bold text-[#1a3a3a]">{claim.ai_analysis || "Membutuhkan analisa lebih lanjut."}</span>
+                      </p>
+                      <p className="text-body-sm text-[#475569] mt-2">
+                        Policy: {claim.policy_quote || "Kebijakan standar A.U.R.A berlaku."}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
+
+              {/* Right Col: Intelligence Report (1/3) */}
+              <div className="flex flex-col gap-8">
+                <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/60 flex flex-col h-full">
+                  <div className="flex items-center justify-between mb-6 pb-6 border-b border-slate-200/60">
+                    <h3 className="text-h3 text-on-background flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[#1a3636]">policy</span>
+                      Intelligence Report
+                    </h3>
+                  </div>
+
+                  {/* Risk Score — bg-surface-dim matching reference */}
+                  <div className="flex flex-col items-center justify-center py-6 mb-8 bg-[#f1f5f9] rounded-xl border border-[#cbd5e1]/30">
+                    <span className="text-label-sm text-[#475569] uppercase tracking-wider mb-2">Overall Risk Score</span>
+                    {isAnalyzing ? (
+                      <div className="flex flex-col items-center text-amber-600">
+                        <span className="material-symbols-outlined animate-spin text-4xl mb-2">autorenew</span>
+                        <span className="text-sm font-medium">Menghitung...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className={`text-[48px] leading-none font-bold ${riskColor} flex items-baseline gap-1`}>
+                          {riskScore}<span className="text-[24px] text-[#94a3b8] font-medium">/10</span>
+                        </div>
+                        <span className={`text-label-md px-3 py-1 rounded-lg mt-3 border ${riskBg}`}>{riskLabel}</span>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Trust Signals */}
+                  <div className="flex flex-col gap-5 flex-1">
+                    <span className="text-label-md text-[#0f172a] mb-1">Trust Signals Breakdown</span>
+                    {signals.map(({ label, status, width, color }) => (
+                      <div key={label} className="flex flex-col gap-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-label-sm text-[#475569]">{label}</span>
+                          <span className={`text-label-sm font-bold ${status === 'Flagged' ? 'text-[#0f172a]' : 'text-[#0f172a]'}`}>{status}</span>
+                        </div>
+                        {/* bg-surface-variant for track matching reference */}
+                        <div className="h-2 w-full bg-[#e2e8f0] rounded-full overflow-hidden">
+                          <div className="h-full rounded-full transition-all duration-500" style={{ width, backgroundColor: color }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Action Buttons */}
+            <div className="mt-8 pt-8 border-t border-slate-200/60 flex flex-col sm:flex-row justify-end gap-4">
+              {claim.status_klaim === 'APPROVED' || claim.status_klaim === 'REJECTED' ? (
+                <div className="flex w-full sm:w-auto items-center justify-between sm:justify-end gap-6 bg-slate-50 p-2 pl-6 rounded-xl border border-slate-200/60">
+                  <div className="text-label-md text-slate-700 font-bold flex items-center gap-2">
+                    <span className={`material-symbols-outlined text-[20px] ${claim.status_klaim === 'APPROVED' ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {claim.status_klaim === 'APPROVED' ? 'check_circle' : 'cancel'}
+                    </span>
+                    Status: {claim.status_klaim === 'APPROVED' ? 'Disetujui' : 'Ditolak'}
+                  </div>
+                  <button
+                    onClick={() => setClaim({ ...claim, status_klaim: 'PENDING_REVIEW' })}
+                    className="px-4 py-2 rounded-lg text-label-sm bg-white text-slate-700 border border-slate-300 hover:bg-slate-100 transition-colors duration-200 shadow-sm flex items-center gap-2 shrink-0"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">edit</span>
+                    Ubah Keputusan
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <button
+                    onClick={handleRejectClick}
+                    disabled={isUpdating || isAnalyzing}
+                    className="px-6 py-3 rounded-xl text-label-md bg-white text-[#ba1a1a] border border-[#ba1a1a] hover:bg-red-50 disabled:opacity-50 transition-colors duration-200 flex items-center justify-center gap-2 shadow-sm"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">block</span>
+                    Tolak Klaim
+                  </button>
+                  <button
+                    onClick={handleApproveClick}
+                    disabled={isUpdating || isAnalyzing}
+                    className="px-8 py-3 rounded-xl text-label-md bg-[#059669] text-white hover:bg-[#047857] disabled:opacity-50 transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-[#059669]/20"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">check_circle</span>
+                    {isUpdating ? 'Memproses...' : 'Terima & Refund'}
+                  </button>
+                </>
+              )}
             </div>
 
           </div>
-
-          {/* Action Buttons */}
-          <div className="mt-8 pt-8 border-t border-slate-200/60 flex flex-col sm:flex-row justify-end gap-4">
-            {claim.status_klaim === 'APPROVED' || claim.status_klaim === 'REJECTED' ? (
-              <div className="flex w-full sm:w-auto items-center justify-between sm:justify-end gap-6 bg-slate-50 p-2 pl-6 rounded-xl border border-slate-200/60">
-                <div className="text-label-md text-slate-700 font-bold flex items-center gap-2">
-                  <span className={`material-symbols-outlined text-[20px] ${claim.status_klaim === 'APPROVED' ? 'text-emerald-600' : 'text-red-600'}`}>
-                    {claim.status_klaim === 'APPROVED' ? 'check_circle' : 'cancel'}
-                  </span>
-                  Status: {claim.status_klaim === 'APPROVED' ? 'Disetujui' : 'Ditolak'}
-                </div>
-                <button
-                  onClick={() => setClaim({ ...claim, status_klaim: 'PENDING_REVIEW' })}
-                  className="px-4 py-2 rounded-lg text-label-sm bg-white text-slate-700 border border-slate-300 hover:bg-slate-100 transition-colors duration-200 shadow-sm flex items-center gap-2 shrink-0"
-                >
-                  <span className="material-symbols-outlined text-[16px]">edit</span>
-                  Ubah Keputusan
-                </button>
-              </div>
-            ) : (
-              <>
-                <button
-                  onClick={handleRejectClick}
-                  disabled={isUpdating || isAnalyzing}
-                  className="px-6 py-3 rounded-xl text-label-md bg-white text-[#ba1a1a] border border-[#ba1a1a] hover:bg-red-50 disabled:opacity-50 transition-colors duration-200 flex items-center justify-center gap-2 shadow-sm"
-                >
-                  <span className="material-symbols-outlined text-[20px]">block</span>
-                  Tolak Klaim
-                </button>
-                <button
-                  onClick={handleApproveClick}
-                  disabled={isUpdating || isAnalyzing}
-                  className="px-8 py-3 rounded-xl text-label-md bg-[#059669] text-white hover:bg-[#047857] disabled:opacity-50 transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-[#059669]/20"
-                >
-                  <span className="material-symbols-outlined text-[20px]">check_circle</span>
-                  {isUpdating ? 'Memproses...' : 'Terima & Refund'}
-                </button>
-              </>
-            )}
-          </div>
-
-        </div>
         )}
       </div>
     </div>

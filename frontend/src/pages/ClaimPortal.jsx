@@ -70,9 +70,8 @@ const inputStyle = {
 /* ─── Drop zone sub-component ───────────────────────────────────────── */
 const DropZone = ({ isDragging, onDragOver, onDragLeave, onDrop, inputRef, onChange, accept, isVideo }) => (
   <div
-    className={`w-full border-2 border-dashed rounded-xl flex justify-center px-6 pt-5 pb-6 transition-all cursor-pointer relative ${
-      isDragging ? 'border-[#1a4742] bg-[#1a4742]/5' : 'border-gray-300 bg-gray-50 hover:bg-gray-100'
-    }`}
+    className={`w-full border-2 border-dashed rounded-xl flex justify-center px-6 pt-5 pb-6 transition-all cursor-pointer relative ${isDragging ? 'border-[#1a4742] bg-[#1a4742]/5' : 'border-gray-300 bg-gray-50 hover:bg-gray-100'
+      }`}
     onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}
   >
     <input type="file" ref={inputRef} onChange={onChange} accept={accept}
@@ -95,7 +94,7 @@ const FilePreview = ({ preview, fileName, label, isVideo, onRemove }) => (
     <div className="flex items-center gap-3 overflow-hidden">
       <div className="w-12 h-12 rounded-lg bg-gray-100 shrink-0 flex items-center justify-center overflow-hidden">
         {isVideo
-          ? <svg className="w-6 h-6 text-[#1a4742]" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          ? <svg className="w-6 h-6 text-[#1a4742]" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
           : <img src={preview} alt="preview" className="w-full h-full object-cover" />
         }
       </div>
@@ -117,33 +116,33 @@ const FilePreview = ({ preview, fileName, label, isVideo, onRemove }) => (
    Main Component
 ═══════════════════════════════════════════════════════════════════════ */
 const ClaimPortal = () => {
-  const [resi, setResi]   = useState('');
+  const [resi, setResi] = useState('');
   const [phone, setPhone] = useState('');
   /* 'idle' | 'exiting' | 'entered' | 'exiting2' | 'success' | 'exiting3' | 'details' */
   const [stepState, setStepState] = useState('idle');
   const [claimId, setClaimId] = useState('');
   const [orderData, setOrderData] = useState(null);
 
-  const [complaint, setComplaint]         = useState('');
-  const [photoBase64, setPhotoBase64]     = useState(null);
+  const [complaint, setComplaint] = useState('');
+  const [photoBase64, setPhotoBase64] = useState(null);
   const [photoFileName, setPhotoFileName] = useState('');
   const [isPhotoDragging, setIsPhotoDragging] = useState(false);
-  const [isPhotoLoading, setIsPhotoLoading]   = useState(false);
+  const [isPhotoLoading, setIsPhotoLoading] = useState(false);
 
-  const [videoBase64, setVideoBase64]     = useState(null);
+  const [videoBase64, setVideoBase64] = useState(null);
   const [videoFileName, setVideoFileName] = useState('');
   const [isVideoDragging, setIsVideoDragging] = useState(false);
-  const [isVideoLoading, setIsVideoLoading]   = useState(false);
+  const [isVideoLoading, setIsVideoLoading] = useState(false);
 
-  const [isLoading, setIsLoading]   = useState(false);
-  const [alertInfo, setAlertInfo]   = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [alertInfo, setAlertInfo] = useState(null);
 
   const photoInputRef = useRef(null);
   const videoInputRef = useRef(null);
 
-  const isVerified    = stepState === 'entered' || stepState === 'exiting2' || stepState === 'success';
-  const isCompleted   = stepState === 'success';
-  const isFormValid   = resi.trim() !== '' && phone.trim().length === 4;
+  const isVerified = stepState === 'entered' || stepState === 'exiting2' || stepState === 'success';
+  const isCompleted = stepState === 'success';
+  const isFormValid = resi.trim() !== '' && phone.trim().length === 4;
 
   /* ── Verify with swipe animation ── */
   const handleVerify = async () => {
@@ -180,7 +179,7 @@ const ClaimPortal = () => {
     setPhotoFileName(file.name); setIsPhotoLoading(true);
     const r = new FileReader();
     r.onloadend = () => { setPhotoBase64(r.result); setAlertInfo(null); setIsPhotoLoading(false); };
-    r.onerror   = () => { setAlertInfo({ type: 'error', message: 'Gagal membaca foto.' }); setIsPhotoLoading(false); };
+    r.onerror = () => { setAlertInfo({ type: 'error', message: 'Gagal membaca foto.' }); setIsPhotoLoading(false); };
     r.readAsDataURL(file);
   };
   const processVideo = (file) => {
@@ -194,21 +193,21 @@ const ClaimPortal = () => {
     setVideoFileName(file.name); setIsVideoLoading(true);
     const r = new FileReader();
     r.onloadend = () => { setVideoBase64(r.result); setAlertInfo(null); setIsVideoLoading(false); };
-    r.onerror   = () => { setAlertInfo({ type: 'error', message: 'Gagal membaca video.' }); setIsVideoLoading(false); };
+    r.onerror = () => { setAlertInfo({ type: 'error', message: 'Gagal membaca video.' }); setIsVideoLoading(false); };
     r.readAsDataURL(file);
   };
 
-  const handlePhotoDragOver  = useCallback((e) => { e.preventDefault(); setIsPhotoDragging(true); }, []);
+  const handlePhotoDragOver = useCallback((e) => { e.preventDefault(); setIsPhotoDragging(true); }, []);
   const handlePhotoDragLeave = useCallback((e) => { e.preventDefault(); setIsPhotoDragging(false); }, []);
-  const handlePhotoDrop      = useCallback((e) => { e.preventDefault(); setIsPhotoDragging(false); if (e.dataTransfer.files?.[0]) processPhoto(e.dataTransfer.files[0]); }, []);
-  const handlePhotoChange    = (e) => { if (e.target.files?.[0]) processPhoto(e.target.files[0]); };
-  const removePhoto          = () => { setPhotoBase64(null); setPhotoFileName(''); if (photoInputRef.current) photoInputRef.current.value = ''; };
+  const handlePhotoDrop = useCallback((e) => { e.preventDefault(); setIsPhotoDragging(false); if (e.dataTransfer.files?.[0]) processPhoto(e.dataTransfer.files[0]); }, []);
+  const handlePhotoChange = (e) => { if (e.target.files?.[0]) processPhoto(e.target.files[0]); };
+  const removePhoto = () => { setPhotoBase64(null); setPhotoFileName(''); if (photoInputRef.current) photoInputRef.current.value = ''; };
 
-  const handleVideoDragOver  = useCallback((e) => { e.preventDefault(); setIsVideoDragging(true); }, []);
+  const handleVideoDragOver = useCallback((e) => { e.preventDefault(); setIsVideoDragging(true); }, []);
   const handleVideoDragLeave = useCallback((e) => { e.preventDefault(); setIsVideoDragging(false); }, []);
-  const handleVideoDrop      = useCallback((e) => { e.preventDefault(); setIsVideoDragging(false); if (e.dataTransfer.files?.[0]) processVideo(e.dataTransfer.files[0]); }, []);
-  const handleVideoChange    = (e) => { if (e.target.files?.[0]) processVideo(e.target.files[0]); };
-  const removeVideo          = () => { setVideoBase64(null); setVideoFileName(''); if (videoInputRef.current) videoInputRef.current.value = ''; };
+  const handleVideoDrop = useCallback((e) => { e.preventDefault(); setIsVideoDragging(false); if (e.dataTransfer.files?.[0]) processVideo(e.dataTransfer.files[0]); }, []);
+  const handleVideoChange = (e) => { if (e.target.files?.[0]) processVideo(e.target.files[0]); };
+  const removeVideo = () => { setVideoBase64(null); setVideoFileName(''); if (videoInputRef.current) videoInputRef.current.value = ''; };
 
   /* ── Reset ── */
   const resetAll = () => {
@@ -231,11 +230,23 @@ const ClaimPortal = () => {
       const result = await response.json();
       if (response.status === 429) {
         setAlertInfo({ type: 'error', message: 'Rate limit (429). Coba lagi.' });
+
       } else if (response.ok && result.status === 'success') {
-        setClaimId(result.data.claim_id);
+        const newClaimId = result.data.claim_id;
+        setClaimId(newClaimId);
+
+        // BARIS BARU: Suruh AI Gemini mikir di background
+        fetch('http://127.0.0.1:8080/api/analyze_claim', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ claim_id: newClaimId })
+        }).catch(err => console.error("Gagal manggil AI:", err));
+
         setStepState('exiting2');
         setTimeout(() => setStepState('success'), 150);
-      } else {
+      }
+
+      else {
         setAlertInfo({ type: 'error', message: result.message || `Error ${response.status}` });
       }
     } catch (error) {
@@ -304,8 +315,8 @@ const ClaimPortal = () => {
               <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: stepState === 'details' ? 'transparent' : '#fff', border: stepState === 'details' ? '2px solid rgba(255,255,255,0.4)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 {isVerified
                   ? <svg style={{ width: '18px', height: '18px', color: '#1a4742' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}/>
-                    </svg>
+                    <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} />
+                  </svg>
                   : <span style={{ fontSize: '14px', fontWeight: 600, color: stepState === 'details' ? 'rgba(255,255,255,0.6)' : '#1a4742' }}>1</span>
                 }
               </div>
@@ -321,7 +332,7 @@ const ClaimPortal = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: isVerified ? 1 : 0.4 }}>
               <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: isVerified ? '#fff' : 'transparent', border: isVerified ? 'none' : '2px solid rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 {isCompleted
-                  ? <svg style={{ width: '18px', height: '18px', color: '#1a4742' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}/></svg>
+                  ? <svg style={{ width: '18px', height: '18px', color: '#1a4742' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} /></svg>
                   : <span style={{ fontSize: '14px', fontWeight: 600, color: isVerified ? '#1a4742' : 'rgba(255,255,255,0.6)' }}>2</span>
                 }
               </div>
@@ -337,7 +348,7 @@ const ClaimPortal = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: isCompleted ? 1 : 0.4 }}>
               <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: isCompleted ? '#fff' : 'transparent', border: isCompleted ? 'none' : '2px solid rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 {isCompleted
-                  ? <svg style={{ width: '18px', height: '18px', color: '#059669' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}/></svg>
+                  ? <svg style={{ width: '18px', height: '18px', color: '#059669' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} /></svg>
                   : <span style={{ fontSize: '14px', fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>3</span>
                 }
               </div>
@@ -355,12 +366,12 @@ const ClaimPortal = () => {
             {(stepState === 'idle' || stepState === 'exiting') && (
               <div className={stepState === 'exiting' ? 'slide-out' : ''} style={{ backgroundColor: '#fff', padding: '2rem', boxShadow: '0 10px 40px rgba(0,0,0,0.15)', borderRadius: '16px' }}>
                 <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#111827', marginBottom: '1.5rem' }}>Verifikasi Pesanan</h2>
-                
+
                 {/* Error alert for Step 1 */}
                 {alertInfo?.type === 'error' && (
                   <div style={{ marginBottom: '1rem', padding: '0.75rem', borderRadius: '12px', backgroundColor: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '14px' }}>
                     <svg style={{ width: '16px', height: '16px', marginTop: '2px', flexShrink: 0 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     {alertInfo.message}
                   </div>
@@ -441,7 +452,7 @@ const ClaimPortal = () => {
                 {alertInfo?.type === 'error' && (
                   <div style={{ marginBottom: '1rem', padding: '0.75rem', borderRadius: '12px', backgroundColor: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '14px' }}>
                     <svg style={{ width: '16px', height: '16px', marginTop: '2px', flexShrink: 0 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     {alertInfo.message}
                   </div>
@@ -463,8 +474,8 @@ const ClaimPortal = () => {
                     <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#1f2937', marginBottom: '0.5rem' }}>Unggah Bukti</label>
                     {isPhotoLoading
                       ? <div style={{ height: '90px', border: '2px dashed rgba(26,71,66,0.4)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f9fafb' }}>
-                          <span className="material-symbols-outlined animate-spin" style={{ color: '#1a4742' }}>sync</span>
-                        </div>
+                        <span className="material-symbols-outlined animate-spin" style={{ color: '#1a4742' }}>sync</span>
+                      </div>
                       : !photoBase64
                         ? <DropZone isDragging={isPhotoDragging} onDragOver={handlePhotoDragOver} onDragLeave={handlePhotoDragLeave} onDrop={handlePhotoDrop} inputRef={photoInputRef} onChange={handlePhotoChange} accept="image/jpeg,image/png" isVideo={false} />
                         : <FilePreview preview={photoBase64} fileName={photoFileName} label="Foto siap dikirim" isVideo={false} onRemove={removePhoto} />
@@ -478,8 +489,8 @@ const ClaimPortal = () => {
                     </div>
                     {isVideoLoading
                       ? <div style={{ height: '90px', border: '2px dashed rgba(26,71,66,0.4)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f9fafb' }}>
-                          <span className="material-symbols-outlined animate-spin" style={{ color: '#1a4742' }}>sync</span>
-                        </div>
+                        <span className="material-symbols-outlined animate-spin" style={{ color: '#1a4742' }}>sync</span>
+                      </div>
                       : !videoBase64
                         ? <DropZone isDragging={isVideoDragging} onDragOver={handleVideoDragOver} onDragLeave={handleVideoDragLeave} onDrop={handleVideoDrop} inputRef={videoInputRef} onChange={handleVideoChange} accept="video/mp4" isVideo={true} />
                         : <FilePreview preview={null} fileName={videoFileName} label="Video siap dikirim" isVideo={true} onRemove={removeVideo} />
@@ -603,7 +614,7 @@ const ClaimPortal = () => {
                       {complaint}
                     </p>
                   </div>
-                  
+
                   {(photoBase64 || videoBase64) && (
                     <div>
                       <p style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', marginBottom: '0.5rem' }}>Bukti Terlampir</p>

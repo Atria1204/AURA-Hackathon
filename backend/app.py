@@ -36,13 +36,15 @@ if not MOCK_DB:
         db = firestore.client()
         print("[A.U.R.A] Firestore diinisialisasi.")
     except Exception as e:
+        import traceback          # <--- TAMBAH INI
+        traceback.print_exc()     # <--- TAMBAH INI BIAR MUNCUL MERAH-MERAH DI TERMINAL
         print(f"[A.U.R.A] Gagal inisialisasi Firestore: {e}")
         MOCK_DB = True
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
-    gemini_model = genai.GenerativeModel('gemini-2.0-flash')
+    gemini_model = genai.GenerativeModel('gemini-2.5-flash')
     print("[A.U.R.A] Gemini AI diinisialisasi.")
 else:
     gemini_model = None
@@ -73,6 +75,28 @@ MOCK_ORDERS = {
         "riwayat_klaim_aktif": 0,
         "foto_katalog_url": ""
     },
+
+    # ===== MOCK BARU UNTUK JAKET =====
+    "TKP-JKT-002": {
+        "tanggal_beli": "2026-05-12",
+        "produk": "Waterproof Bomber Jacket Olive",
+        "kategori": "Clothing",
+        "riwayat_klaim_aktif": 0,
+        "foto_katalog_url": "https://images.unsplash.com/photo-1551028719-00167b16eac5?q=80&w=200&auto=format&fit=crop"
+    },
+    # ================================
+
+    # ======= MOCK BARU: JAKET JEANS (UNTUK SIMULASI) =======
+    "TKP-JKT-PRO-01": {
+        "tanggal_beli": "2026-05-10", # Baru beli minggu lalu
+        "produk": "Legacy Denim Jacket - Indigo Blue",
+        "kategori": "Clothing",
+        "riwayat_klaim_aktif": 0,    # Pembeli bersih (S2 aman)
+        # Link foto katalog jaket mulus:
+        "foto_katalog_url": "https://images.unsplash.com/photo-1543076447-215ad9ba6923?q=80&w=600&auto=format&fit=crop"
+    },
+    # =======================================================
+
 }
 
 SUBMITTED_CLAIMS = {}
@@ -128,6 +152,8 @@ def verify_order():
         }), 200
 
     except Exception as e:
+        import traceback          # <--- TAMBAH INI
+        traceback.print_exc()     # <--- TAMBAH INI BIAR MUNCUL MERAH-MERAH DI TERMINAL
         return jsonify({"status": "error", "data": {}, "message": str(e)}), 500
 
 
@@ -159,10 +185,13 @@ def submit_claim():
             "receipt": f"RCPT-{random.randint(100000, 999999)}",
             "product": produk_nama,
             "category": kategori,
+            "foto_katalog_url": order.get("foto_katalog_url", ""), # <--- TAMBAHKAN BARIS INI
             "date": now.strftime("%b %d, %Y"),
             "time": now.strftime("%I:%M %p"),
             "score": 0, # AI belum analyze
-            "image": foto_base64[:100] + "..." if MOCK_DB else foto_base64, # Jangan simpan base64 besar di mock
+            # "image": foto_base64[:100] + "..." if MOCK_DB else foto_base64, # Jangan simpan base64 besar di mock
+            # Hapus pemotongan string [:100], biarkan foto_base64 dikirim utuh
+            "image": foto_base64,
             "foto_base64": foto_base64, # untuk processing
             "video": video_base64[:100] + "..." if (MOCK_DB and video_base64) else video_base64,
             "video_base64": video_base64,
@@ -187,6 +216,8 @@ def submit_claim():
         }), 200
 
     except Exception as e:
+        import traceback          # <--- TAMBAH INI
+        traceback.print_exc()     # <--- TAMBAH INI BIAR MUNCUL MERAH-MERAH DI TERMINAL
         return jsonify({"status": "error", "data": {}, "message": str(e)}), 500
 
 
@@ -214,6 +245,8 @@ def get_claims():
             "message": "Data klaim berhasil diambil."
         }), 200
     except Exception as e:
+        import traceback          # <--- TAMBAH INI
+        traceback.print_exc()     # <--- TAMBAH INI BIAR MUNCUL MERAH-MERAH DI TERMINAL
         return jsonify({"status": "error", "data": {}, "message": str(e)}), 500
 
 
@@ -264,19 +297,46 @@ def analyze_claim():
         policy_quote = "Kebijakan standar A.U.R.A berlaku."
         
         if gemini_model:
-            prompt = f"""
-            Anda adalah A.U.R.A (Autonomous Understanding & Return Agent).
-            Kebijakan toko: Cacat minor kompensasi Rp50.000, cacat mayor full refund.
-            Keluhan customer: "{claim_data.get('teks_keluhan')}"
+            # prompt = f"""
+            # Anda adalah A.U.R.A (Autonomous Understanding & Return Agent).
+            # Kebijakan toko: Cacat minor kompensasi Rp50.000, cacat mayor full refund.
+            # Keluhan customer: "{claim_data.get('teks_keluhan')}"
             
-            Berikan respons dalam format JSON valid dengan field:
-            - s3_visual_inconsistency (0-3): Nilai inkonsistensi visual (0=konsisten/aman, 3=sangat mencurigakan).
-            - s4_text_mismatch (0-2): Nilai mismatch teks dan gambar (0=sesuai, 2=tidak sesuai).
-            - ai_analysis (string): Penjelasan analisis singkat.
-            - policy_quote (string): Kutipan kebijakan toko yang relevan.
-            """
+            # Berikan respons dalam format JSON valid dengan field:
+            # - s3_visual_inconsistency (0-3): Nilai inkonsistensi visual (0=konsisten/aman, 3=sangat mencurigakan).
+            # - s4_text_mismatch (0-2): Nilai mismatch teks dan gambar (0=sesuai, 2=tidak sesuai).
+            # - ai_analysis (string): Penjelasan analisis singkat.
+            # - policy_quote (string): Kutipan kebijakan toko yang relevan.
+            # """
             # Jika ada integrasi foto, kirimkan part image. Di sini kita bypass parsing bas64 jika terlalu panjang/error
             # Sebagai contoh kita kirim teks saja jika handling base64 kompleks, tapi bisa disesuaikan.
+
+            prompt = f"""
+            Anda adalah A.U.R.A (Autonomous Understanding & Return Agent).
+            Tugas Anda adalah memvalidasi klaim retur pelanggan dengan membandingkan teks keluhan dan bukti visual.
+
+            Data Kasus:
+            - Kategori Produk: {claim_data.get('category')}
+            - Keluhan Customer: "{claim_data.get('teks_keluhan')}"
+
+            Instruksi Analisis Visual:
+            1. Jika foto bukti tidak jelas atau gelap, berikan skor S3 tinggi.
+            2. Jika kerusakan yang dikeluhkan (teks) tidak terlihat di foto, berikan skor S4 tinggi.
+            3. Berikan rekomendasi singkat dan tegas: apakah klaim ini layak diterima (full refund / partial) atau ditolak.
+
+            Kebijakan Toko:
+            - Cacat minor (noda kecil, benang keluar): Kompensasi Rp50.000 (Partial Refund).
+            - Cacat mayor (robek besar, sol lepas, salah barang): Full Refund.
+            - Tidak ada cacat yang terlihat di foto: Tolak klaim.
+
+            Format JSON Output Wajib:
+            {{
+            "s3_visual_inconsistency": [0-3],
+            "s4_text_mismatch": [0-2],
+            "ai_analysis": "[Analisis tajam maksimal 2 kalimat berdasarkan foto]",
+            "policy_quote": "[Kutipan aturan toko yang paling sesuai]"
+            }}
+            """
             
             response = gemini_model.generate_content(prompt)
             # Parsing JSON dari response
@@ -334,6 +394,8 @@ def analyze_claim():
             "message": "Rate limit tercapai. Silakan coba beberapa saat lagi."
         }), 429
     except Exception as e:
+        import traceback          # <--- TAMBAH INI
+        traceback.print_exc()     # <--- TAMBAH INI BIAR MUNCUL MERAH-MERAH DI TERMINAL
         return jsonify({"status": "error", "data": {}, "message": str(e)}), 500
 
 
@@ -374,6 +436,8 @@ def update_claim_status():
         }), 200
 
     except Exception as e:
+        import traceback          # <--- TAMBAH INI
+        traceback.print_exc()     # <--- TAMBAH INI BIAR MUNCUL MERAH-MERAH DI TERMINAL
         return jsonify({"status": "error", "data": {}, "message": str(e)}), 500
 
 
@@ -392,6 +456,24 @@ def health_check():
         "message": "A.U.R.A API is Live!"
     }), 200
 
+# =============================================================================
+# ENDPOINT BANTUAN: Cek Model Tersedia
+# =============================================================================
+@app.route('/api/models', methods=['GET'])
+def list_available_models():
+    try:
+        if not gemini_model:
+            return jsonify({"error": "Gemini belum diinisialisasi. Cek API Key."}), 500
+            
+        models = genai.list_models()
+        available_models = [m.name for m in models if 'generateContent' in m.supported_generation_methods]
+        
+        return jsonify({
+            "status": "success",
+            "supported_models": available_models
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
